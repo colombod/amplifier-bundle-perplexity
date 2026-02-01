@@ -2,12 +2,68 @@
 
 Deep web research capabilities for Amplifier using Perplexity's Agentic Research API.
 
+## Highlights
+
+### Categorized References with URLs for Follow-Up Research
+
+Unlike basic search, this bundle returns **structured, categorized references** that downstream agents can use for deeper investigation:
+
+```markdown
+## References
+
+### Academic Sources
+- [1] HEMA: A Hippocampus-Inspired Extended Memory Architecture...
+  URL: https://arxiv.org/abs/2504.16754
+- [2] Episodic Retrieval in Cognitive Science...
+  URL: https://pmc.ncbi.nlm.nih.gov/articles/PMC1074338/
+
+### News & Industry
+- [3] AI Emulates Brain's Memory Replay...
+  URL: https://neurosciencenews.com/place-cell-ai-learning-23202/
+
+### Documentation
+- [4] Memory Architecture Implementation Guide
+  URL: https://github.com/example/memory-arch
+
+---
+Tokens: 7756
+```
+
+**Why this matters:** Other agents can use `web_fetch` on these URLs to dive deeper into specific sources. The research-expert agent includes a **Deep Dive Suggestions** table prioritizing which sources merit follow-up:
+
+| Priority | Source | URL | Investigation Focus |
+|----------|--------|-----|---------------------|
+| High | arxiv paper | [URL] | Full methodology section |
+| Medium | GitHub repo | [URL] | Benchmark comparisons |
+
+### Domain-Specific Query Enhancement
+
+The research-expert agent intelligently adapts queries based on your domain context:
+
+| You Say | Agent Does |
+|---------|------------|
+| "from neuroscience perspective" | Adds domain terms, prioritizes academic sources |
+| "recent 2024-2025 papers" | Adds time constraints, notes publication dates |
+| "industry perspective" | Includes analyst reports, market coverage |
+
+```
+User: "Research AI memory architectures from a neuroscience angle"
+
+Agent uses:
+  query: "AI memory architectures inspired by hippocampus and biological neural systems"
+  instructions: "Prioritize peer-reviewed neuroscience journals and computational 
+                 neuroscience sources. Focus on biological mechanisms."
+```
+
+---
+
 ## Features
 
-- **Deep Research Tool**: Multi-step web research with citations via `perplexity_research`
-- **Research Expert Agent**: Specialized agent for complex research tasks
-- **Cost-Aware Guidance**: Know when to use expensive research (~$5/query) vs free alternatives
-- **Research Recipes**: Pre-built workflows for common research patterns
+- **Deep Research Tool**: Multi-step web research with categorized citations via `perplexity_research`
+- **Research Expert Agent**: Domain-aware research with structured handoff for downstream agents
+- **Categorized References**: Sources grouped by type (Academic, News, Docs, Other) with extractable URLs
+- **Deep Dive Suggestions**: Prioritized follow-up recommendations for agents with `web_fetch`
+- **Cost-Aware Guidance**: Token-based pricing (~10-15k tokens typical)
 
 ## Installation
 
@@ -36,10 +92,25 @@ export PERPLEXITY_API_KEY=pplx-xxxxx
 Use the perplexity_research tool to find current information about quantum computing breakthroughs in 2025.
 ```
 
-### Agent Delegation
+### Agent Delegation (Recommended)
 
 ```
-Delegate to perplexity:research-expert to research and compare cloud provider ML pricing.
+Delegate to perplexity:research-expert to research AI from a neuroscience perspective, focusing on hippocampus-inspired architectures.
+```
+
+The agent will:
+1. Enhance your query with domain-specific terms
+2. Set appropriate source preferences via `instructions`
+3. Return categorized references for follow-up
+4. Provide Deep Dive Suggestions for downstream agents
+
+### Chaining with Follow-Up Research
+
+After getting research results, use the categorized URLs for deeper investigation:
+
+```
+Based on the research results, use web_fetch on the High-priority academic sources 
+to extract the full methodology sections.
 ```
 
 ### Recipes
@@ -58,7 +129,7 @@ amplifier tool invoke recipes operation=execute \
 
 ## Cost Awareness
 
-**Perplexity research costs ~$5 per query.** Use wisely.
+**Token-based pricing** (~10-15k tokens typical per query). Each response includes token count for tracking.
 
 ### When to Use Deep Research
 
@@ -66,6 +137,7 @@ amplifier tool invoke recipes operation=execute \
 - Current events, news, or rapidly changing topics
 - Fact-checking with verified citations
 - Market research, competitive analysis
+- Domain-specific research (neuroscience, academic, industry angles)
 
 ### When to Use Free Alternatives
 
@@ -79,26 +151,45 @@ amplifier tool invoke recipes operation=execute \
 
 Deep research using Perplexity's /v1/responses API. The tool code is embedded in this bundle.
 
-Parameters:
+**Parameters:**
 - `query` (required): Research question
 - `preset`: `pro-search` (default), `sonar-pro`, `sonar-reasoning`
 - `reasoning_effort`: `low`, `medium` (default), `high`
 - `max_steps`: 1-10 (default: 5)
+- `instructions`: Source preferences, domain focus, time constraints
+
+**Output Features:**
+- Main research content with inline citations `[1]`, `[2]`
+- Categorized References section (Academic, News, Docs, Other)
+- Each reference includes full URL for `web_fetch`
+- Token count for cost tracking
 
 ### Agent: perplexity:research-expert
 
 Specialized research agent with:
-- Full research methodology
-- Cost-benefit decision framework
-- Structured output with citations
-- Verification capabilities
+- **Advanced Query Formulation**: Domain-aware query enhancement
+- **Source Preferences**: Uses `instructions` parameter for targeted research
+- **Categorized Output**: References grouped by source type
+- **Deep Dive Suggestions**: Prioritized URLs for downstream agent follow-up
+- **Cost-Benefit Framework**: Knows when deep research is worth it
 
 ### Recipes
 
 | Recipe | Purpose | Est. Cost |
 |--------|---------|-----------|
-| `deep-research.yaml` | Multi-step research with verification | ~$10-15 |
-| `fact-check.yaml` | Verify claims with tiered approach | ~$0-10 |
+| `deep-research.yaml` | Multi-step research with verification | ~$0.10-0.50 |
+| `fact-check.yaml` | Verify claims with tiered approach | ~$0.05-0.30 |
+
+## URL Categorization
+
+The tool automatically categorizes sources:
+
+| Category | Detected Domains |
+|----------|------------------|
+| **Academic** | arxiv.org, doi.org, pubmed, nature.com, ieee.org, .edu, scholar.google |
+| **News & Industry** | techcrunch, wired, bloomberg, reuters, medium, substack |
+| **Documentation** | github.com, docs.*, api.*, developer.* |
+| **Other** | Everything else |
 
 ## API Reference
 
