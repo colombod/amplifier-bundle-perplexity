@@ -2,7 +2,7 @@ name: deep-research
 description: |
   Multi-step deep research workflow with verification.
   Uses Perplexity for primary research, then validates key claims.
-  Cost: ~$10-15 depending on depth and verification.
+  Cost: ~$0.10-0.50 depending on depth and verification (10-50k tokens typical).
 version: "1.0.0"
 author: "Amplifier Perplexity Bundle"
 tags: ["research", "perplexity", "citations"]
@@ -28,7 +28,7 @@ steps:
          - pro-search: Standard research
          - sonar-pro: Comprehensive coverage needed
          - sonar-reasoning: Complex analysis required
-      4. Estimate if this justifies the ~$5 cost (YES/NO with reasoning)
+      4. Estimate if this justifies the token cost (~10-50k tokens, YES/NO with reasoning)
       
       Format your response as a structured research plan.
     output: "research_plan"

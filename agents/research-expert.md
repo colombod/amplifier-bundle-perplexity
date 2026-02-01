@@ -40,11 +40,10 @@ meta:
     </commentary>
     </example>
 
-tools:
-  - module: tool-perplexity-search
-    source: git+https://github.com/colombod/amplifier-bundle-perplexity@main#subdirectory=modules/tool-perplexity-search
-  - module: tool-web
-    source: git+https://github.com/microsoft/amplifier-module-tool-web@main
+# Tools inherited from parent session via behavior:
+# - tool-perplexity-search (from perplexity-research behavior)
+# - tool-web (from foundation)
+# - All other foundation tools
 ---
 
 # Research Expert
