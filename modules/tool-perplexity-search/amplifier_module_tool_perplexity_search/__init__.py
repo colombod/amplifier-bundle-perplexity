@@ -93,21 +93,26 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
                     "type": "string",
                     "description": "Research question or topic to investigate",
                 },
-                "preset": {
+                "mode": {
                     "type": "string",
-                    "enum": ["pro-search"],
-                    "description": "Research preset. Only pro-search is supported for Agentic Research API.",
+                    "enum": ["auto", "research", "chat"],
+                    "description": "API mode: 'research' for Agentic Research API (deep, multi-step), 'chat' for Chat Completions (faster, cheaper), 'auto' tries research first then falls back to chat on quota/rate limits",
+                },
+                "model": {
+                    "type": "string",
+                    "enum": ["sonar-pro", "sonar", "sonar-reasoning"],
+                    "description": "Model for chat mode. sonar-pro=comprehensive, sonar=fast, sonar-reasoning=with reasoning",
                 },
                 "reasoning_effort": {
                     "type": "string",
                     "enum": ["low", "medium", "high"],
-                    "description": "Depth of reasoning. Higher = more thorough but slower",
+                    "description": "Depth of reasoning (research mode only). Higher = more thorough but slower",
                 },
                 "max_steps": {
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 10,
-                    "description": "Maximum research loop steps (1-10)",
+                    "description": "Maximum research loop steps (research mode only, 1-10)",
                 },
                 "instructions": {
                     "type": "string",
@@ -156,12 +161,18 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
         await self.close()
 
     async def execute(self, input: dict[str, Any]) -> ToolResult:
-        """Execute a research query using Perplexity's Agentic Research API.
+        """Execute a research query using Perplexity APIs.
+
+        Supports two API modes:
+        - 'research': Agentic Research API (deep, multi-step research)
+        - 'chat': Chat Completions API (faster, simpler, cheaper)
+        - 'auto': Tries research first, falls back to chat on quota/rate limits
 
         Args:
             input: Dictionary containing:
                 - query (required): Research question or topic
-                - preset: Research preset (pro-search, sonar-pro, sonar-reasoning)
+                - mode: API mode ('auto', 'research', 'chat')
+                - model: Model for chat mode (sonar-pro, sonar, sonar-reasoning)
                 - reasoning_effort: Depth of reasoning (low, medium, high)
                 - max_steps: Maximum research steps (1-10)
                 - instructions: Additional research instructions
@@ -178,11 +189,9 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
                 error={"message": "Missing required parameter: query"},
             )
 
-        # Use explicit None checks to handle falsy values like 0 correctly
-        # Type-safe parameter extraction with proper defaults
-        preset: str = self.preset
-        if input.get("preset") is not None:
-            preset = str(input["preset"])
+        # Mode selection: auto, research, or chat
+        mode: str = str(input.get("mode", "auto"))
+        model: str = str(input.get("model", "sonar-pro"))
 
         reasoning_effort: str = self.reasoning_effort
         if input.get("reasoning_effort") is not None:
@@ -198,13 +207,56 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             else "Provide thorough, well-researched answers with citations."
         )
 
-        # Execute request using SDK's high-level method
+        # Execute based on mode
+        if mode == "chat":
+            # Direct chat mode - skip research API
+            return await self._execute_chat(query, model, instructions)
+        elif mode == "research":
+            # Direct research mode - no fallback
+            return await self._execute_research(
+                query, reasoning_effort, max_steps, instructions
+            )
+        else:
+            # Auto mode - try research first, fallback to chat on quota/rate limits
+            result = await self._execute_research(
+                query, reasoning_effort, max_steps, instructions
+            )
+
+            # Check if we should fallback to chat
+            if not result.success and result.error:
+                error_msg = result.error.get("message", "")
+                should_fallback = any(
+                    trigger in error_msg.lower()
+                    for trigger in ["rate limit", "quota", "429", "insufficient"]
+                )
+
+                if should_fallback:
+                    logger.info(
+                        f"Agentic Research API failed ({error_msg}), "
+                        f"falling back to Chat API with {model}"
+                    )
+                    return await self._execute_chat(
+                        query,
+                        model,
+                        instructions,
+                        fallback_note=f"(Fallback from Research API: {error_msg})",
+                    )
+
+            return result
+
+    async def _execute_research(
+        self,
+        query: str,
+        reasoning_effort: str,
+        max_steps: int,
+        instructions: str,
+    ) -> ToolResult:
+        """Execute using Agentic Research API (responses.create)."""
         try:
             logger.debug(f"Executing Perplexity research: {query[:100]}...")
 
-            response = await self._make_request(
+            response = await self._make_research_request(
                 query=query,
-                preset=preset,
                 reasoning_effort=reasoning_effort,
                 max_steps=max_steps,
                 instructions=instructions,
@@ -226,7 +278,7 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             logger.warning(error_msg)
             return ToolResult(
                 success=False,
-                output=error_msg,  # Also put in output for visibility
+                output=error_msg,
                 error={"message": error_msg},
             )
         except perplexity.APITimeoutError:
@@ -238,7 +290,6 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
                 error={"message": error_msg},
             )
         except perplexity.BadRequestError as e:
-            # Invalid request - likely bad preset or parameters
             error_msg = (
                 f"Invalid request: {e.message if hasattr(e, 'message') else str(e)}"
             )
@@ -272,10 +323,110 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
                 error={"message": f"Research failed: {e}"},
             )
 
-    async def _make_request(
+    async def _execute_chat(
         self,
         query: str,
-        preset: str,
+        model: str,
+        instructions: str,
+        fallback_note: str = "",
+    ) -> ToolResult:
+        """Execute using Chat Completions API (chat.completions.create).
+
+        This is the simpler, faster, and cheaper API for basic queries.
+        Supports models: sonar-pro, sonar, sonar-reasoning.
+        """
+        try:
+            logger.debug(f"Executing Perplexity chat ({model}): {query[:100]}...")
+
+            response = await self._make_chat_request(query, model, instructions)
+
+            # Extract content from chat response
+            content = ""
+            citations: list[dict[str, str]] = []
+
+            if response.choices and len(response.choices) > 0:
+                message = response.choices[0].message
+                content = message.content or ""
+
+                # Extract citations if available
+                if hasattr(message, "citations") and message.citations:
+                    for url in message.citations:
+                        if url not in [c["url"] for c in citations]:
+                            citations.append(
+                                {
+                                    "url": url,
+                                    "title": "Citation",
+                                    "category": self._categorize_url(url),
+                                }
+                            )
+
+            # Build result
+            result: dict[str, Any] = {
+                "content": content,
+                "citations": citations,
+                "usage": {},
+                "model": model,
+                "status": "completed",
+            }
+
+            if response.usage:
+                result["usage"] = {
+                    "input_tokens": response.usage.prompt_tokens or 0,
+                    "output_tokens": response.usage.completion_tokens or 0,
+                    "total_tokens": response.usage.total_tokens or 0,
+                }
+
+            output = self._format_structured_output(result)
+
+            if fallback_note:
+                output = f"{fallback_note}\n\n{output}"
+
+            return ToolResult(success=True, output=output)
+
+        except perplexity.RateLimitError as e:
+            error_msg = f"Chat rate limited: {e.message}"
+            logger.warning(error_msg)
+            return ToolResult(
+                success=False, output=error_msg, error={"message": error_msg}
+            )
+        except perplexity.APIStatusError as e:
+            error_msg = f"Chat API error {e.status_code}"
+            if hasattr(e, "message") and e.message:
+                error_msg = f"{error_msg}: {e.message}"
+            logger.warning(f"Perplexity Chat API error: {error_msg}")
+            return ToolResult(
+                success=False, output=error_msg, error={"message": error_msg}
+            )
+        except Exception as e:
+            logger.exception("Unexpected error in Perplexity chat")
+            return ToolResult(
+                success=False, output="", error={"message": f"Chat failed: {e}"}
+            )
+
+    async def _make_chat_request(
+        self, query: str, model: str, instructions: str
+    ) -> Any:
+        """Make request to Perplexity's Chat Completions API.
+
+        Args:
+            query: The user's question
+            model: Model to use (sonar-pro, sonar, sonar-reasoning)
+            instructions: System instructions
+
+        Returns:
+            Chat completion response
+        """
+        return await self.client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": instructions},
+                {"role": "user", "content": query},
+            ],
+        )
+
+    async def _make_research_request(
+        self,
+        query: str,
         reasoning_effort: str,
         max_steps: int,
         instructions: str,
@@ -291,7 +442,6 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
 
         Args:
             query: Research question
-            preset: Research preset (only 'pro-search' for Agentic Research)
             reasoning_effort: Reasoning depth (low, medium, high)
             max_steps: Max research steps (1-10)
             instructions: Additional instructions for the research
