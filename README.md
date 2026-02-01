@@ -57,17 +57,22 @@ Agent uses:
 
 ---
 
-## Features
-
-- **Deep Research Tool**: Multi-step web research with categorized citations via `perplexity_research`
-- **Research Expert Agent**: Domain-aware research with structured handoff for downstream agents
-- **Categorized References**: Sources grouped by type (Academic, News, Docs, Other) with extractable URLs
-- **Deep Dive Suggestions**: Prioritized follow-up recommendations for agents with `web_fetch`
-- **Cost-Aware Guidance**: Token-based pricing (~10-15k tokens typical)
-
 ## Installation
 
-### As a Bundle Dependency
+### Option 1: Amplifier CLI (Recommended)
+
+```bash
+# Add the bundle to your registry
+amplifier bundle add git+https://github.com/colombod/amplifier-bundle-perplexity@main
+
+# Set it as your active bundle (or compose with your existing bundle)
+amplifier bundle use perplexity
+
+# Verify installation
+amplifier bundle list
+```
+
+### Option 2: Compose with Your Existing Bundle
 
 Add to your bundle's includes:
 
@@ -76,13 +81,56 @@ includes:
   - bundle: git+https://github.com/colombod/amplifier-bundle-perplexity@main
 ```
 
-### Environment Setup
+### Option 3: Use Directly Without Installing
+
+```bash
+# Run with the bundle directly (one-time use)
+amplifier run --bundle git+https://github.com/colombod/amplifier-bundle-perplexity@main "Research quantum computing breakthroughs"
+```
+
+## Environment Setup
 
 Set your Perplexity API key:
 
 ```bash
 export PERPLEXITY_API_KEY=pplx-xxxxx
 ```
+
+Or add to your shell profile (`~/.bashrc`, `~/.zshrc`):
+
+```bash
+echo 'export PERPLEXITY_API_KEY="pplx-xxxxx"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+## Quick Start
+
+After installation:
+
+```bash
+# Start interactive session with perplexity bundle
+amplifier
+
+# In the session, delegate research to the expert agent:
+> Delegate to perplexity:research-expert to research the latest advances in fusion energy
+```
+
+Or use the tool directly:
+
+```bash
+# Single research query
+amplifier run "Use perplexity_research to find information about CRISPR breakthroughs in 2025"
+```
+
+---
+
+## Features
+
+- **Deep Research Tool**: Multi-step web research with categorized citations via `perplexity_research`
+- **Research Expert Agent**: Domain-aware research with structured handoff for downstream agents
+- **Categorized References**: Sources grouped by type (Academic, News, Docs, Other) with extractable URLs
+- **Deep Dive Suggestions**: Prioritized follow-up recommendations for agents with `web_fetch`
+- **Cost-Aware Guidance**: Token-based pricing (~10-15k tokens typical)
 
 ## Usage
 
