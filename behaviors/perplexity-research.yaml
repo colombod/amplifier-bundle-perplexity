@@ -4,10 +4,10 @@ bundle:
   description: Perplexity deep research capability - agent, tool, and guidance
 
 # The research tool - embedded in this bundle
-# Using local path (faster, no network, version-synchronized)
+# Using namespace path to reference module from bundle root
 tools:
   - module: tool-perplexity-search
-    source: ./modules/tool-perplexity-search
+    source: perplexity:modules/tool-perplexity-search
     config:
       preset: pro-search           # Default preset (can override per-call)
       reasoning_effort: medium     # Balance speed vs depth

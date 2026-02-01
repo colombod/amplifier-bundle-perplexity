@@ -42,7 +42,7 @@ meta:
 
 tools:
   - module: tool-perplexity-search
-    source: ./modules/tool-perplexity-search
+    source: perplexity:modules/tool-perplexity-search
   - module: tool-web
     source: git+https://github.com/microsoft/amplifier-module-tool-web@main
 ---
