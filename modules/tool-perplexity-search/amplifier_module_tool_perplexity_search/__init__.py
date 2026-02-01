@@ -95,8 +95,8 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
                 },
                 "preset": {
                     "type": "string",
-                    "enum": ["pro-search", "sonar-pro", "sonar"],
-                    "description": "Research preset. pro-search=balanced (default), sonar-pro=deep comprehensive, sonar=fast basic",
+                    "enum": ["pro-search"],
+                    "description": "Research preset. Only pro-search is supported for Agentic Research API.",
                 },
                 "reasoning_effort": {
                     "type": "string",
@@ -282,17 +282,19 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
     ) -> ResponseCreateResponse:
         """Make request to Perplexity's Agentic Research API.
 
-        Uses the SDK's high-level client.responses.create() method which provides:
-        - Type safety with ResponseCreateResponse
-        - Built-in retry logic
-        - Proper error handling
+        Uses the Agentic Research API (responses.create) which is designed for
+        deep research tasks with web search and URL fetching capabilities.
+
+        Note: This API only supports the 'pro-search' preset. Other models like
+        'sonar-pro' use the Chat Completions API (chat.completions.create) which
+        is a different endpoint entirely.
 
         Args:
             query: Research question
-            preset: Research preset
-            reasoning_effort: Reasoning depth
-            max_steps: Max research steps
-            instructions: Additional instructions
+            preset: Research preset (only 'pro-search' for Agentic Research)
+            reasoning_effort: Reasoning depth (low, medium, high)
+            max_steps: Max research steps (1-10)
+            instructions: Additional instructions for the research
 
         Returns:
             Typed ResponseCreateResponse from SDK
@@ -300,13 +302,17 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
         Raises:
             perplexity.APIError: On API errors
         """
+        # Agentic Research API - use responses.create with pro-search preset
+        # Combine query and instructions into the input
+        combined_input = query
+        if instructions:
+            combined_input = f"{instructions}\n\nResearch question: {query}"
+
         return await self.client.responses.create(
-            input=query,
-            preset=preset,
+            input=combined_input,
+            preset="pro-search",  # Only valid preset for Agentic Research API
             reasoning={"effort": reasoning_effort},
             max_steps=max_steps,
-            tools=[{"type": "web_search"}, {"type": "fetch_url"}],
-            instructions=instructions,
         )
 
     def _categorize_url(self, url: str) -> str:

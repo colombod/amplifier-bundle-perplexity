@@ -26,13 +26,15 @@ Ask: "Is this research task valuable enough to justify a paid API call?"
 - **NO**: Use free alternatives
 - **MAYBE**: Start with free `web_search`, escalate if insufficient
 
-## Preset Cost Factors
+## Cost Factors
 
-| Preset | Token Usage | When to Use |
-|--------|-------------|-------------|
-| `pro-search` | ~10-15k tokens | Default for most research |
-| `sonar-pro` | ~15-25k tokens | Need comprehensive coverage |
-| `sonar` | ~5-10k tokens | Quick basic research |
+The Agentic Research API uses `pro-search` preset with configurable depth:
+
+| Reasoning Effort | Token Usage | When to Use |
+|------------------|-------------|-------------|
+| `low` | ~5-10k tokens | Quick fact-finding |
+| `medium` | ~10-15k tokens | Balanced research (default) |
+| `high` | ~15-25k tokens | Deep analysis, complex topics |
 
 **Note**: Token count is reported at the end of each research output for cost tracking.
 

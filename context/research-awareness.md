@@ -43,15 +43,18 @@ Cost varies by query complexity but is generally affordable for research tasks.
 | Quick web lookup | `web_search` | Free |
 | Fetch specific URL | `web_fetch` | Free |
 
-## Presets
+## API Details
 
-The `perplexity_research` tool supports different presets:
+The `perplexity_research` tool uses Perplexity's **Agentic Research API** which:
+- Performs multi-step web research with citations
+- Supports reasoning chains for complex analysis
+- Uses the `pro-search` preset (the only valid preset for this API)
 
-| Preset | Use When | Depth |
-|--------|----------|-------|
-| `pro-search` | Default - balanced research | Medium |
-| `sonar-pro` | Need comprehensive coverage | Deep |
-| `sonar` | Quick basic research | Fast |
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `reasoning_effort` | low, medium, high | Depth of reasoning chains |
+| `max_steps` | 1-10 | Maximum research iterations |
+| `instructions` | text | Additional guidance for the research |
 
 ## Delegation
 
