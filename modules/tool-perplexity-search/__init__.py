@@ -178,11 +178,24 @@ Cost: ~$5 per research task. Returns structured output with citations."""
                 error={"message": "Missing required parameter: query"},
             )
 
-        preset = input.get("preset") or self.preset
-        reasoning_effort = input.get("reasoning_effort") or self.reasoning_effort
-        max_steps = input.get("max_steps") or self.max_steps
-        instructions = input.get("instructions") or (
-            "Provide thorough, well-researched answers with citations."
+        # Use explicit None checks to handle falsy values like 0 correctly
+        # Type-safe parameter extraction with proper defaults
+        preset: str = self.preset
+        if input.get("preset") is not None:
+            preset = str(input["preset"])
+
+        reasoning_effort: str = self.reasoning_effort
+        if input.get("reasoning_effort") is not None:
+            reasoning_effort = str(input["reasoning_effort"])
+
+        max_steps: int = self.max_steps
+        if input.get("max_steps") is not None:
+            max_steps = int(input["max_steps"])
+
+        instructions: str = (
+            str(input["instructions"])
+            if input.get("instructions")
+            else "Provide thorough, well-researched answers with citations."
         )
 
         # Execute request using SDK's high-level method
@@ -511,7 +524,9 @@ Cost: ~$5 per research task. Returns structured output with citations."""
                     parts.append(f"\n{name}")
                     for i, citation in by_category[category]:
                         title = citation.get("title", "Untitled")
-                        url = citation["url"]
+                        url = citation.get("url", "")
+                        if not url:
+                            continue  # Skip malformed citations
                         parts.append(f"- [{i}] {title}")
                         parts.append(f"  URL: {url}")
 

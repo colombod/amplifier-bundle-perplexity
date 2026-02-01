@@ -13,7 +13,7 @@ includes:
 
 # Perplexity Deep Research
 
-@perplexity:context/research-awareness.md
+<!-- Context injected via behavior's context.include - no duplication -->
 
 ## Capabilities
 
