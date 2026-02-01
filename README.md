@@ -75,9 +75,9 @@ amplifier tool invoke recipes operation=execute \
 
 ## Components
 
-### Tool: perplexity_research
+### Tool: perplexity_research (embedded)
 
-Deep research using Perplexity's /v1/responses API.
+Deep research using Perplexity's /v1/responses API. The tool code is embedded in this bundle.
 
 Parameters:
 - `query` (required): Research question
@@ -106,8 +106,8 @@ Specialized research agent with:
 
 | Endpoint | Purpose |
 |----------|---------|
-| `/v1/responses` | Agentic research (this tool) |
-| `/v1/chat/completions` | Standard chat (provider module) |
+| `/v1/responses` | Agentic research (this bundle) |
+| `/v1/chat/completions` | Standard chat (separate provider module) |
 
 ### Available Presets
 
@@ -119,8 +119,7 @@ Specialized research agent with:
 
 ## Related Modules
 
-- **amplifier-module-provider-perplexity**: LLM provider for chat completions (separate module)
-- **amplifier-module-tool-perplexity-search**: The research tool (included in this bundle)
+- **amplifier-module-provider-perplexity**: LLM provider for chat completions (separate module for using Perplexity as your AI backend)
 
 ## License
 

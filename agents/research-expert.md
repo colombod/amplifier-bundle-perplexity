@@ -50,7 +50,7 @@ meta:
 
 tools:
   - module: tool-perplexity-search
-    source: git+https://github.com/colombod/amplifier-module-tool-perplexity-search@main
+    source: perplexity:src/amplifier_module_tool_perplexity_search
   - module: tool-web
     source: git+https://github.com/microsoft/amplifier-module-tool-web@main
 ---
