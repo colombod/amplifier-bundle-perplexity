@@ -19,15 +19,17 @@ This bundle adds deep web research capabilities using Perplexity's Agentic Resea
 
 - **Deep Research**: Multi-step web research with citations via `perplexity_research` tool
 - **Research Expert**: Specialized agent for complex research tasks (`perplexity:research-expert`)
-- **Cost-Aware Guidance**: Know when to use expensive research (~$5/query) vs free alternatives
+- **Cost-Aware Guidance**: Know when to use deep research vs free alternatives
 
 ## Quick Reference
 
 | Need | Use | Cost |
 |------|-----|------|
-| Deep multi-source research | `perplexity_research` tool or delegate to `perplexity:research-expert` | ~$5 |
+| Deep multi-source research | `perplexity_research` tool or delegate to `perplexity:research-expert` | Token-based |
 | Quick web lookup | `web_search` tool | Free |
 | Fetch specific URL | `web_fetch` tool | Free |
+
+**Note**: Research output includes token count for cost tracking. Typical queries use 10-15k tokens.
 
 ## When to Use Deep Research
 

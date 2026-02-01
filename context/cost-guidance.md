@@ -1,6 +1,9 @@
 # Research Cost Decision Framework
 
-Perplexity research costs ~$5 per query. Use this framework to decide.
+Perplexity research uses **token-based pricing**. Typical queries use 10-15k tokens.
+Actual cost depends on the model/preset used - generally much lower than $5 per query.
+
+Use this framework to decide when deep research is worth it.
 
 ## Decision Matrix
 
@@ -25,11 +28,13 @@ Ask: "Would I pay $5 to a human researcher for this answer?"
 
 ## Preset Cost Factors
 
-| Preset | Relative Cost | When to Use |
-|--------|---------------|-------------|
-| `pro-search` | 1x (~$5) | Default for most research |
-| `sonar-pro` | ~1.5x | Need comprehensive coverage |
-| `sonar-reasoning` | ~2x | Complex analysis, reasoning chains |
+| Preset | Token Usage | When to Use |
+|--------|-------------|-------------|
+| `pro-search` | ~10-15k tokens | Default for most research |
+| `sonar-pro` | ~15-25k tokens | Need comprehensive coverage |
+| `sonar-reasoning` | ~20-30k tokens | Complex analysis, reasoning chains |
+
+**Note**: Token count is reported at the end of each research output for cost tracking.
 
 ## Anti-Patterns
 
