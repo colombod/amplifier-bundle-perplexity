@@ -200,23 +200,12 @@ Cost: ~$5 per research task. Returns structured output with citations."""
             # Parse typed response
             result = self._parse_response(response)
 
-            # Format output for LLM consumption
-            output_parts = [result["content"]]
-
-            if result.get("citations"):
-                output_parts.append("\n\n## Citations")
-                for i, citation in enumerate(result["citations"], 1):
-                    output_parts.append(f"[{i}] {citation}")
-
-            if result.get("usage"):
-                usage = result["usage"]
-                output_parts.append(
-                    f"\n\n---\nTokens: {usage.get('total_tokens', 'N/A')}"
-                )
+            # Format output with categorized references for downstream agents
+            output = self._format_structured_output(result)
 
             return ToolResult(
                 success=True,
-                output="\n".join(output_parts),
+                output=output,
             )
 
         except perplexity.RateLimitError as e:
@@ -291,6 +280,85 @@ Cost: ~$5 per research task. Returns structured output with citations."""
             instructions=instructions,
         )
 
+    def _categorize_url(self, url: str) -> str:
+        """Categorize a URL by source type.
+
+        Args:
+            url: The URL to categorize
+
+        Returns:
+            Category string: "academic", "news", "docs", or "other"
+        """
+        url_lower = url.lower()
+
+        # Academic indicators
+        if any(
+            domain in url_lower
+            for domain in [
+                "arxiv.org",
+                "doi.org",
+                "pubmed",
+                "springer.com",
+                "nature.com",
+                "sciencedirect",
+                ".edu/",
+                "acm.org",
+                "ieee.org",
+                "scholar.google",
+                "ncbi.nlm.nih",
+                "plos.org",
+                "frontiersin.org",
+                "biorxiv.org",
+                "medrxiv.org",
+                "researchgate.net",
+                "semanticscholar.org",
+            ]
+        ):
+            return "academic"
+
+        # Documentation indicators
+        if any(
+            domain in url_lower
+            for domain in [
+                "docs.",
+                "/docs/",
+                "documentation",
+                "readme",
+                "github.com",
+                "gitlab.com",
+                "api.",
+                "developer.",
+                "devdocs",
+            ]
+        ):
+            return "docs"
+
+        # News indicators
+        if any(
+            domain in url_lower
+            for domain in [
+                "techcrunch",
+                "wired.com",
+                "theverge",
+                "arstechnica",
+                "bbc.",
+                "cnn.",
+                "reuters.",
+                "nytimes",
+                "wsj.com",
+                "bloomberg.",
+                "/news/",
+                "/blog/",
+                "medium.com",
+                "substack.com",
+                "venturebeat",
+                "thenextweb",
+            ]
+        ):
+            return "news"
+
+        return "other"
+
     def _parse_response(self, response: ResponseCreateResponse) -> dict[str, Any]:
         """Parse the typed SDK response into a structured result.
 
@@ -298,7 +366,7 @@ Cost: ~$5 per research task. Returns structured output with citations."""
             response: Typed ResponseCreateResponse from SDK
 
         Returns:
-            Structured result with content, citations, usage
+            Structured result with content, categorized citations, usage
         """
         result: dict[str, Any] = {
             "content": "",
@@ -317,7 +385,7 @@ Cost: ~$5 per research task. Returns structured output with citations."""
 
         # Extract output text from typed response
         text_parts: list[str] = []
-        citations: list[str] = []
+        citations: list[dict[str, str]] = []
         seen_urls: set[str] = set()
 
         for output_item in response.output:
@@ -340,18 +408,53 @@ Cost: ~$5 per research task. Returns structured output with citations."""
                             title = getattr(annotation, "title", url)
                             if url and url not in seen_urls:
                                 seen_urls.add(url)
-                                if title and title != url:
-                                    citations.append(f"{title}: {url}")
-                                else:
-                                    citations.append(url)
+                                citations.append(
+                                    {
+                                        "url": url,
+                                        "title": title
+                                        if title and title != url
+                                        else "Untitled",
+                                        "category": self._categorize_url(url),
+                                    }
+                                )
 
             elif item_type == "search_results":
-                # SearchResultsOutputItem - could extract search results
-                pass
+                # Extract URLs from search results
+                results = getattr(output_item, "results", [])
+                for search_result in results:
+                    url = getattr(search_result, "url", None)
+                    title = getattr(search_result, "title", None) or getattr(
+                        search_result, "name", url
+                    )
+                    if url and url not in seen_urls:
+                        seen_urls.add(url)
+                        citations.append(
+                            {
+                                "url": url,
+                                "title": title
+                                if title and title != url
+                                else "Untitled",
+                                "category": self._categorize_url(url),
+                            }
+                        )
 
             elif item_type == "fetch_url_results":
-                # FetchURLResultsOutputItem - could extract fetched content
-                pass
+                # Extract URLs from fetched content
+                results = getattr(output_item, "results", [])
+                for fetch_result in results:
+                    url = getattr(fetch_result, "url", None)
+                    title = getattr(fetch_result, "title", None) or url
+                    if url and url not in seen_urls:
+                        seen_urls.add(url)
+                        citations.append(
+                            {
+                                "url": url,
+                                "title": title
+                                if title and title != url
+                                else "Untitled",
+                                "category": self._categorize_url(url),
+                            }
+                        )
 
         result["content"] = "\n".join(text_parts)
         result["citations"] = citations
@@ -366,6 +469,57 @@ Cost: ~$5 per research task. Returns structured output with citations."""
             }
 
         return result
+
+    def _format_structured_output(self, result: dict[str, Any]) -> str:
+        """Format the parsed result into structured markdown output.
+
+        Groups citations by category and provides a clean format for
+        downstream agents to extract URLs.
+
+        Args:
+            result: Parsed result from _parse_response
+
+        Returns:
+            Formatted markdown string with categorized references
+        """
+        parts = [result["content"]]
+
+        citations = result.get("citations", [])
+        if citations:
+            parts.append("\n\n## References\n")
+
+            # Group by category
+            by_category: dict[str, list[tuple[int, dict[str, str]]]] = {
+                "academic": [],
+                "news": [],
+                "docs": [],
+                "other": [],
+            }
+            for i, citation in enumerate(citations, 1):
+                category = citation.get("category", "other")
+                by_category[category].append((i, citation))
+
+            category_names = {
+                "academic": "### Academic Sources",
+                "news": "### News & Industry",
+                "docs": "### Documentation",
+                "other": "### Other Sources",
+            }
+
+            for category, name in category_names.items():
+                if by_category[category]:
+                    parts.append(f"\n{name}")
+                    for i, citation in by_category[category]:
+                        title = citation.get("title", "Untitled")
+                        url = citation["url"]
+                        parts.append(f"- [{i}] {title}")
+                        parts.append(f"  URL: {url}")
+
+        if result.get("usage"):
+            usage = result["usage"]
+            parts.append(f"\n\n---\nTokens: {usage.get('total_tokens', 'N/A')}")
+
+        return "\n".join(parts)
 
 
 async def mount(
