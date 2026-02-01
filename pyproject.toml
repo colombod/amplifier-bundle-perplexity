@@ -24,7 +24,7 @@ allow-direct-references = true
 package = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/amplifier_module_tool_perplexity_search"]
+packages = ["modules/tool-perplexity-search/amplifier_module_tool_perplexity_search"]
 
 [dependency-groups]
 dev = [
