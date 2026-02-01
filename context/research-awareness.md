@@ -51,7 +51,7 @@ The `perplexity_research` tool supports different presets:
 |--------|----------|-------|
 | `pro-search` | Default - balanced research | Medium |
 | `sonar-pro` | Need comprehensive coverage | Deep |
-| `sonar-reasoning` | Complex analysis, reasoning chains | Deep + Reasoning |
+| `sonar` | Quick basic research | Fast |
 
 ## Delegation
 

@@ -95,8 +95,8 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
                 },
                 "preset": {
                     "type": "string",
-                    "enum": ["pro-search", "sonar-pro", "sonar-reasoning"],
-                    "description": "Research preset. pro-search=balanced, sonar-pro=deeper, sonar-reasoning=with reasoning steps",
+                    "enum": ["pro-search", "sonar-pro", "sonar"],
+                    "description": "Research preset. pro-search=balanced (default), sonar-pro=deep comprehensive, sonar=fast basic",
                 },
                 "reasoning_effort": {
                     "type": "string",
@@ -222,24 +222,40 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             )
 
         except perplexity.RateLimitError as e:
+            error_msg = f"Rate limited: {e.message}"
+            logger.warning(error_msg)
             return ToolResult(
                 success=False,
-                output="",
-                error={"message": f"Rate limited: {e.message}"},
+                output=error_msg,  # Also put in output for visibility
+                error={"message": error_msg},
             )
         except perplexity.APITimeoutError:
+            error_msg = f"Research request timed out after {self.timeout}s"
+            logger.warning(error_msg)
             return ToolResult(
                 success=False,
-                output="",
-                error={"message": f"Research request timed out after {self.timeout}s"},
+                output=error_msg,
+                error={"message": error_msg},
+            )
+        except perplexity.BadRequestError as e:
+            # Invalid request - likely bad preset or parameters
+            error_msg = (
+                f"Invalid request: {e.message if hasattr(e, 'message') else str(e)}"
+            )
+            logger.warning(f"Perplexity BadRequest: {error_msg}")
+            return ToolResult(
+                success=False,
+                output=error_msg,
+                error={"message": error_msg},
             )
         except perplexity.APIStatusError as e:
-            error_msg = f"API error: {e.status_code}"
-            if e.message:
-                error_msg = f"{error_msg} - {e.message}"
+            error_msg = f"API error {e.status_code}"
+            if hasattr(e, "message") and e.message:
+                error_msg = f"{error_msg}: {e.message}"
+            logger.warning(f"Perplexity API error: {error_msg}")
             return ToolResult(
                 success=False,
-                output="",
+                output=error_msg,
                 error={"message": error_msg},
             )
         except perplexity.APIConnectionError as e:

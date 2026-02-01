@@ -32,7 +32,7 @@ Ask: "Is this research task valuable enough to justify a paid API call?"
 |--------|-------------|-------------|
 | `pro-search` | ~10-15k tokens | Default for most research |
 | `sonar-pro` | ~15-25k tokens | Need comprehensive coverage |
-| `sonar-reasoning` | ~20-30k tokens | Complex analysis, reasoning chains |
+| `sonar` | ~5-10k tokens | Quick basic research |
 
 **Note**: Token count is reported at the end of each research output for cost tracking.
 
