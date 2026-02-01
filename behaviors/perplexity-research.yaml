@@ -1,0 +1,22 @@
+bundle:
+  name: perplexity-research-behavior
+  version: 1.0.0
+  description: Perplexity deep research capability - agent, tool, and guidance
+
+# The research tool - this IS the capability we provide
+tools:
+  - module: tool-perplexity-search
+    source: git+https://github.com/colombod/amplifier-module-tool-perplexity-search@main
+    config:
+      preset: pro-search           # Default preset (can override per-call)
+      reasoning_effort: medium     # Balance speed vs depth
+      max_steps: 5                 # Default max research steps
+      timeout: 120.0               # Request timeout in seconds
+
+agents:
+  include:
+    - perplexity:research-expert
+
+context:
+  include:
+    - perplexity:context/research-awareness.md

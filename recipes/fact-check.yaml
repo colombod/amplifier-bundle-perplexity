@@ -1,0 +1,148 @@
+name: fact-check
+description: |
+  Verify claims with citations using a cost-effective tiered approach.
+  Uses free web search for simple claims, Perplexity only for complex ones.
+version: "1.0.0"
+author: "Amplifier Perplexity Bundle"
+tags: ["fact-check", "verification", "citations"]
+
+context:
+  claims: ""              # Required: Claims to verify (one per line or comma-separated)
+  source_context: ""      # Optional: Where these claims came from
+  strict_mode: false      # If true, use Perplexity for ALL claims regardless of complexity
+
+steps:
+  - id: "triage-claims"
+    prompt: |
+      Triage these claims for fact-checking:
+      
+      **Claims:**
+      {{claims}}
+      
+      **Source Context:** {{source_context}}
+      
+      For each claim, categorize:
+      1. **SIMPLE** - Easily verified with free web search (dates, basic facts, public info)
+      2. **COMPLEX** - Needs deep research with citations (recent events, technical claims, statistics)
+      3. **OPINION** - Not factually verifiable (subjective statements, predictions)
+      4. **CONTEXT** - Already have enough context to verify without searching
+      
+      Output as a numbered list:
+      
+      1. [CATEGORY] "claim text" - Reason for categorization
+      2. [CATEGORY] "claim text" - Reason for categorization
+      ...
+      
+      Be conservative - prefer SIMPLE over COMPLEX when in doubt to minimize costs.
+    output: "triaged_claims"
+    timeout: 120
+
+  - id: "quick-verify"
+    agent: "foundation:web-research"
+    prompt: |
+      Verify the SIMPLE and CONTEXT claims using FREE tools:
+      
+      Triaged claims:
+      {{triaged_claims}}
+      
+      For each claim marked SIMPLE or CONTEXT:
+      1. Use web_search to find verification (it's free)
+      2. Determine verdict: TRUE / FALSE / PARTIALLY TRUE / UNVERIFIABLE
+      3. Provide brief evidence
+      4. Note the source
+      
+      Skip claims marked COMPLEX or OPINION.
+      
+      Format:
+      ## Simple Claim Verification
+      
+      **Claim 1:** "claim text"
+      - Verdict: [TRUE/FALSE/PARTIALLY TRUE/UNVERIFIABLE]
+      - Evidence: [brief evidence]
+      - Source: [URL or "common knowledge"]
+      
+      [repeat for each simple claim]
+    output: "quick_results"
+    timeout: 180
+    depends_on: ["triage-claims"]
+
+  - id: "deep-verify"
+    agent: "perplexity:research-expert"
+    prompt: |
+      Verify the COMPLEX claims using deep research:
+      
+      Triaged claims:
+      {{triaged_claims}}
+      
+      For each claim marked COMPLEX:
+      1. Use `perplexity_research` tool to find authoritative sources
+      2. Determine verdict: TRUE / FALSE / PARTIALLY TRUE / UNVERIFIABLE
+      3. Provide detailed evidence with citations
+      4. Assess confidence level
+      
+      Skip claims NOT marked COMPLEX.
+      
+      Format:
+      ## Complex Claim Verification
+      
+      **Claim:** "claim text"
+      - Verdict: [TRUE/FALSE/PARTIALLY TRUE/UNVERIFIABLE]
+      - Evidence: [detailed evidence with inline citations]
+      - Confidence: [High/Medium/Low]
+      - Sources:
+        [1] Source: URL
+        [2] Source: URL
+      
+      [repeat for each complex claim]
+    output: "deep_results"
+    timeout: 300
+    depends_on: ["triage-claims"]
+
+  - id: "compile-report"
+    prompt: |
+      Compile fact-check results into final report:
+      
+      **Original Claims:** {{claims}}
+      **Triage Results:** {{triaged_claims}}
+      **Quick Verification:** {{quick_results}}
+      **Deep Verification:** {{deep_results}}
+      
+      Create a comprehensive fact-check report:
+      
+      ## Fact-Check Summary
+      
+      | Verdict | Count |
+      |---------|-------|
+      | TRUE | X |
+      | FALSE | X |
+      | PARTIALLY TRUE | X |
+      | UNVERIFIABLE | X |
+      | OPINION (not checked) | X |
+      
+      ## Detailed Results
+      
+      [For each claim in order:]
+      
+      ### Claim N: "[claim text]"
+      - **Category:** [SIMPLE/COMPLEX/OPINION/CONTEXT]
+      - **Verdict:** [verdict with emoji: check for true, x for false, etc.]
+      - **Evidence:** [summary of evidence]
+      - **Source(s):** [list sources]
+      
+      ## Methodology
+      - Simple claims verified with: free web_search
+      - Complex claims verified with: Perplexity deep research (~$5 each)
+      - Opinion claims: not fact-checkable
+      - Total estimated cost: $[X]
+      
+      ## Reliability Notes
+      [Any caveats about the verification process]
+    output: "fact_check_report"
+    timeout: 120
+    depends_on: ["quick-verify", "deep-verify"]
+
+outputs:
+  report: "{{fact_check_report}}"
+  triage: "{{triaged_claims}}"
+  simple_results: "{{quick_results}}"
+  complex_results: "{{deep_results}}"

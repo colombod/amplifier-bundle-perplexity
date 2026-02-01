@@ -1,0 +1,112 @@
+name: deep-research
+description: |
+  Multi-step deep research workflow with verification.
+  Uses Perplexity for primary research, then validates key claims.
+  Cost: ~$10-15 depending on depth and verification.
+version: "1.0.0"
+author: "Amplifier Perplexity Bundle"
+tags: ["research", "perplexity", "citations"]
+
+context:
+  research_question: ""      # Required: The question to research
+  depth: "standard"          # standard | comprehensive | exhaustive
+  verify_claims: true        # Whether to verify key claims with independent sources
+
+steps:
+  - id: "scope-research"
+    agent: "perplexity:research-expert"
+    prompt: |
+      Analyze this research question and create a research plan:
+      
+      **Question:** {{research_question}}
+      **Depth:** {{depth}}
+      
+      Output:
+      1. Restate the question clearly
+      2. Identify 2-3 sub-questions to answer
+      3. Recommend preset based on complexity:
+         - pro-search: Standard research
+         - sonar-pro: Comprehensive coverage needed
+         - sonar-reasoning: Complex analysis required
+      4. Estimate if this justifies the ~$5 cost (YES/NO with reasoning)
+      
+      Format your response as a structured research plan.
+    output: "research_plan"
+    timeout: 120
+
+  - id: "primary-research"
+    agent: "perplexity:research-expert"
+    prompt: |
+      Execute the research plan:
+      
+      **Original Question:** {{research_question}}
+      **Research Plan:** {{research_plan}}
+      
+      Use the `perplexity_research` tool with the recommended preset.
+      
+      Provide comprehensive findings following the response contract:
+      - Research Summary (2-3 sentences)
+      - Key Findings with inline citations [1], [2], etc.
+      - Complete Sources list
+      - Confidence Assessment
+    output: "primary_findings"
+    timeout: 300
+    depends_on: ["scope-research"]
+
+  - id: "verify-claims"
+    agent: "foundation:web-research"
+    prompt: |
+      Verify the top 3 most important claims from this research using FREE web search:
+      
+      {{primary_findings}}
+      
+      For each claim:
+      1. Search for independent corroboration using web_search (free)
+      2. Note any conflicting information found
+      3. Rate confidence: High / Medium / Low
+      
+      This verification uses free tools to validate the paid research.
+    output: "verification_results"
+    timeout: 180
+    depends_on: ["primary-research"]
+    condition: "{{verify_claims}}"
+
+  - id: "synthesize-report"
+    prompt: |
+      Create the final research report:
+      
+      **Question:** {{research_question}}
+      **Primary Research:** {{primary_findings}}
+      **Verification:** {{verification_results}}
+      
+      Synthesize into a comprehensive report with:
+      
+      ## Executive Summary
+      [2-3 sentences answering the research question]
+      
+      ## Detailed Findings
+      [Structured findings with citations]
+      
+      ## Source Verification
+      [Summary of verification results]
+      
+      ## Confidence Assessment
+      - High confidence findings
+      - Moderate confidence findings
+      - Gaps or limitations
+      
+      ## Sources
+      [Complete list of sources used]
+      
+      ## Methodology
+      - Research approach used
+      - Tools employed
+      - Approximate cost incurred
+    output: "final_report"
+    timeout: 180
+    depends_on: ["verify-claims"]
+
+outputs:
+  report: "{{final_report}}"
+  sources: "{{primary_findings}}"
+  verification: "{{verification_results}}"
