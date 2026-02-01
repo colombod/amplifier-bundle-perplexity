@@ -20,9 +20,9 @@ Use this framework to decide when deep research is worth it.
 
 ## Cost-Per-Value Calculation
 
-Ask: "Would I pay $5 to a human researcher for this answer?"
+Ask: "Is this research task valuable enough to justify a paid API call?"
 
-- **YES**: Use Perplexity
+- **YES**: Use Perplexity (token-based cost, typically 10-15k tokens)
 - **NO**: Use free alternatives
 - **MAYBE**: Start with free `web_search`, escalate if insufficient
 
@@ -48,7 +48,7 @@ Consolidate into ONE well-crafted query when possible.
 
 ## Query Optimization
 
-**Good queries** (worth $5):
+**Good queries** (worth the token cost):
 - "What are the top 3 quantum computing companies for drug discovery and their 2024 funding?"
 - "Compare pricing and features of AWS, Azure, and GCP for ML workloads as of today"
 

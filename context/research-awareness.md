@@ -20,7 +20,7 @@ You have access to deep web research via Perplexity's Agentic Research API.
 ## Cost Awareness
 
 **Perplexity research uses token-based pricing** (typically 10-15k tokens per query).
-Not free, but much cheaper than the ~$5 originally estimated.
+Cost varies by query complexity but is generally affordable for research tasks.
 
 **Worth the cost:**
 - Research supporting important decisions
@@ -39,7 +39,7 @@ Not free, but much cheaper than the ~$5 originally estimated.
 
 | Need | Tool | Cost |
 |------|------|------|
-| Deep research with citations | `perplexity_research` or delegate to `perplexity:research-expert` | ~$5 |
+| Deep research with citations | `perplexity_research` or delegate to `perplexity:research-expert` | Token-based (~10-15k tokens) |
 | Quick web lookup | `web_search` | Free |
 | Fetch specific URL | `web_fetch` | Free |
 

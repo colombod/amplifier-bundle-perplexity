@@ -81,7 +81,7 @@ NOT for:
 - Simple factual lookups (use web_search instead - it's free)
 - Questions about static/historical facts
 
-Cost: ~$5 per research task. Returns structured output with citations."""
+Cost: Token-based (~10-15k tokens typical). Returns structured output with citations."""
 
     @property
     def input_schema(self) -> dict[str, Any]:

@@ -10,8 +10,8 @@ dependencies = [
     "amplifier-core @ git+https://github.com/microsoft/amplifier-core",
 ]
 
-[project.entry-points."amplifier.modules"]
-tool-perplexity-search = "amplifier_module_tool_perplexity_search:mount"
+# Entry point defined in modules/tool-perplexity-search/pyproject.toml
+# Root bundle package doesn't re-declare it to avoid conflicts
 
 [build-system]
 requires = ["hatchling"]
