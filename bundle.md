@@ -11,9 +11,9 @@ includes:
   - bundle: perplexity:behaviors/perplexity-research
 ---
 
-# Perplexity Research Bundle
+# Perplexity Deep Research
 
-This bundle adds deep web research capabilities using Perplexity's Agentic Research API.
+@perplexity:context/research-awareness.md
 
 ## Capabilities
 
@@ -45,4 +45,4 @@ Requires `PERPLEXITY_API_KEY` environment variable.
 
 ---
 
-@perplexity:context/research-awareness.md
+@foundation:context/shared/common-system-base.md

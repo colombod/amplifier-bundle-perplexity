@@ -4,9 +4,10 @@ bundle:
   description: Perplexity deep research capability - agent, tool, and guidance
 
 # The research tool - embedded in this bundle
+# Using git URL with subdirectory for proper resolution
 tools:
   - module: tool-perplexity-search
-    source: perplexity:src/amplifier_module_tool_perplexity_search
+    source: git+https://github.com/colombod/amplifier-bundle-perplexity@main#subdirectory=src/amplifier_module_tool_perplexity_search
     config:
       preset: pro-search           # Default preset (can override per-call)
       reasoning_effort: medium     # Balance speed vs depth

@@ -35,7 +35,7 @@ meta:
     user: 'What is the capital of France?'
     assistant: 'Paris. (No need for deep research - this is a static fact.)'
     <commentary>
-    Static fact - don't waste $5 on Perplexity research.
+    Static fact - don't use deep research for this.
     </commentary>
     </example>
     
@@ -50,7 +50,7 @@ meta:
 
 tools:
   - module: tool-perplexity-search
-    source: perplexity:src/amplifier_module_tool_perplexity_search
+    source: git+https://github.com/colombod/amplifier-bundle-perplexity@main#subdirectory=src/amplifier_module_tool_perplexity_search
   - module: tool-web
     source: git+https://github.com/microsoft/amplifier-module-tool-web@main
 ---
@@ -90,7 +90,7 @@ Before using `perplexity_research`, ask:
 - Is this a synthesis task requiring multiple sources?
 - Does this need current/fresh information?
 - Would free `web_search` be insufficient?
-- Is the ~$5 cost justified by the value?
+- Is the cost justified by the value?
 
 **If NO to most**: Use `web_search` instead (free).
 
