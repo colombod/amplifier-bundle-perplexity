@@ -19,6 +19,7 @@ from typing import Any
 import perplexity
 from perplexity import AsyncPerplexity
 from perplexity.types import ResponseCreateResponse
+from perplexity.types.stream_chunk import StreamChunk
 
 from amplifier_core import ModuleCoordinator, ToolResult
 
@@ -232,8 +233,10 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
 
                 if should_fallback:
                     logger.info(
-                        f"Agentic Research API failed ({error_msg}), "
-                        f"falling back to Chat API with {model}"
+                        "Agentic Research API failed (%s), "
+                        "falling back to Chat API with %s",
+                        error_msg,
+                        model,
                     )
                     return await self._execute_chat(
                         query,
@@ -253,7 +256,7 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
     ) -> ToolResult:
         """Execute using Agentic Research API (responses.create)."""
         try:
-            logger.debug(f"Executing Perplexity research: {query[:100]}...")
+            logger.debug("Executing Perplexity research: %s...", query[:100])
 
             response = await self._make_research_request(
                 query=query,
@@ -293,7 +296,7 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             error_msg = (
                 f"Invalid request: {e.message if hasattr(e, 'message') else str(e)}"
             )
-            logger.warning(f"Perplexity BadRequest: {error_msg}")
+            logger.warning("Perplexity BadRequest: %s", error_msg)
             return ToolResult(
                 success=False,
                 output=error_msg,
@@ -303,7 +306,7 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             error_msg = f"API error {e.status_code}"
             if hasattr(e, "message") and e.message:
                 error_msg = f"{error_msg}: {e.message}"
-            logger.warning(f"Perplexity API error: {error_msg}")
+            logger.warning("Perplexity API error: %s", error_msg)
             return ToolResult(
                 success=False,
                 output=error_msg,
@@ -336,7 +339,7 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
         Supports models: sonar-pro, sonar, sonar-reasoning.
         """
         try:
-            logger.debug(f"Executing Perplexity chat ({model}): {query[:100]}...")
+            logger.debug("Executing Perplexity chat (%s): %s...", model, query[:100])
 
             response = await self._make_chat_request(query, model, instructions)
 
@@ -393,7 +396,7 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             error_msg = f"Chat API error {e.status_code}"
             if hasattr(e, "message") and e.message:
                 error_msg = f"{error_msg}: {e.message}"
-            logger.warning(f"Perplexity Chat API error: {error_msg}")
+            logger.warning("Perplexity Chat API error: %s", error_msg)
             return ToolResult(
                 success=False, output=error_msg, error={"message": error_msg}
             )
@@ -405,7 +408,7 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
 
     async def _make_chat_request(
         self, query: str, model: str, instructions: str
-    ) -> Any:
+    ) -> StreamChunk:
         """Make request to Perplexity's Chat Completions API.
 
         Args:
@@ -414,7 +417,7 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             instructions: System instructions
 
         Returns:
-            Chat completion response
+            Typed StreamChunk response from SDK
         """
         return await self.client.chat.completions.create(
             model=model,
@@ -463,6 +466,32 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             preset="pro-search",  # Only valid preset for Agentic Research API
             reasoning={"effort": reasoning_effort},
             max_steps=max_steps,
+        )
+
+    def _add_citation(
+        self,
+        seen_urls: set[str],
+        citations: list[dict[str, str]],
+        url: str | None,
+        title: str | None,
+    ) -> None:
+        """Add a citation if the URL is new and valid.
+
+        Args:
+            seen_urls: Set of already-seen URLs for deduplication
+            citations: List to append the citation dict to
+            url: Citation URL (skipped if None or already seen)
+            title: Citation title (falls back to "Untitled")
+        """
+        if not url or url in seen_urls:
+            return
+        seen_urls.add(url)
+        citations.append(
+            {
+                "url": url,
+                "title": title if title and title != url else "Untitled",
+                "category": self._categorize_url(url),
+            }
         )
 
     def _categorize_url(self, url: str) -> str:
@@ -589,19 +618,12 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
                         # Extract annotations/citations (may be None)
                         annotations = getattr(content_item, "annotations", None) or []
                         for annotation in annotations:
-                            url = getattr(annotation, "url", None)
-                            title = getattr(annotation, "title", url)
-                            if url and url not in seen_urls:
-                                seen_urls.add(url)
-                                citations.append(
-                                    {
-                                        "url": url,
-                                        "title": title
-                                        if title and title != url
-                                        else "Untitled",
-                                        "category": self._categorize_url(url),
-                                    }
-                                )
+                            self._add_citation(
+                                seen_urls,
+                                citations,
+                                getattr(annotation, "url", None),
+                                getattr(annotation, "title", None),
+                            )
 
             elif item_type == "search_results":
                 # Extract URLs from search results
@@ -609,37 +631,20 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
                 for search_result in results:
                     url = getattr(search_result, "url", None)
                     title = getattr(search_result, "title", None) or getattr(
-                        search_result, "name", url
+                        search_result, "name", None
                     )
-                    if url and url not in seen_urls:
-                        seen_urls.add(url)
-                        citations.append(
-                            {
-                                "url": url,
-                                "title": title
-                                if title and title != url
-                                else "Untitled",
-                                "category": self._categorize_url(url),
-                            }
-                        )
+                    self._add_citation(seen_urls, citations, url, title)
 
             elif item_type == "fetch_url_results":
                 # Extract URLs from fetched content
                 results = getattr(output_item, "results", [])
                 for fetch_result in results:
-                    url = getattr(fetch_result, "url", None)
-                    title = getattr(fetch_result, "title", None) or url
-                    if url and url not in seen_urls:
-                        seen_urls.add(url)
-                        citations.append(
-                            {
-                                "url": url,
-                                "title": title
-                                if title and title != url
-                                else "Untitled",
-                                "category": self._categorize_url(url),
-                            }
-                        )
+                    self._add_citation(
+                        seen_urls,
+                        citations,
+                        getattr(fetch_result, "url", None),
+                        getattr(fetch_result, "title", None),
+                    )
 
         result["content"] = "\n".join(text_parts)
         result["citations"] = citations
@@ -743,7 +748,7 @@ async def mount(
     )
 
     await coordinator.mount("tools", tool, name=tool.name)
-    logger.info(f"Perplexity research tool mounted (preset: {tool.preset})")
+    logger.info("Perplexity research tool mounted (preset: %s)", tool.preset)
 
     async def cleanup() -> None:
         await tool.close()

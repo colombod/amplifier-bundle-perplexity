@@ -9,12 +9,17 @@ from amplifier_core import ToolResult
 from amplifier_module_tool_perplexity_search import PerplexityResearchTool
 
 
+@pytest.fixture
+def tool():
+    """Shared sync fixture for tests that only need a PerplexityResearchTool instance."""
+    return PerplexityResearchTool(api_key="test-key")
+
+
 class TestInputSchema:
     """Tests for input_schema validation."""
 
-    def test_schema_has_required_properties(self):
+    def test_schema_has_required_properties(self, tool):
         """Input schema should define all expected properties."""
-        tool = PerplexityResearchTool(api_key="test-key")
         schema = tool.input_schema
 
         assert schema["type"] == "object"
@@ -25,40 +30,35 @@ class TestInputSchema:
         assert "max_steps" in schema["properties"]
         assert "instructions" in schema["properties"]
 
-    def test_query_is_required(self):
+    def test_query_is_required(self, tool):
         """Query should be the only required field."""
-        tool = PerplexityResearchTool(api_key="test-key")
         schema = tool.input_schema
 
         assert schema["required"] == ["query"]
 
-    def test_mode_enum_values(self):
+    def test_mode_enum_values(self, tool):
         """Mode should have valid enum values."""
-        tool = PerplexityResearchTool(api_key="test-key")
         schema = tool.input_schema
 
         mode_schema = schema["properties"]["mode"]
         assert mode_schema["enum"] == ["auto", "research", "chat"]
 
-    def test_model_enum_values(self):
+    def test_model_enum_values(self, tool):
         """Model should have valid enum values."""
-        tool = PerplexityResearchTool(api_key="test-key")
         schema = tool.input_schema
 
         model_schema = schema["properties"]["model"]
         assert model_schema["enum"] == ["sonar-pro", "sonar", "sonar-reasoning"]
 
-    def test_reasoning_effort_enum_values(self):
+    def test_reasoning_effort_enum_values(self, tool):
         """Reasoning effort should have valid enum values."""
-        tool = PerplexityResearchTool(api_key="test-key")
         schema = tool.input_schema
 
         effort_schema = schema["properties"]["reasoning_effort"]
         assert effort_schema["enum"] == ["low", "medium", "high"]
 
-    def test_max_steps_constraints(self):
+    def test_max_steps_constraints(self, tool):
         """Max steps should have min/max constraints."""
-        tool = PerplexityResearchTool(api_key="test-key")
         schema = tool.input_schema
 
         steps_schema = schema["properties"]["max_steps"]
@@ -105,9 +105,8 @@ class TestResponseParsing:
         message.content = [content_item]
         return message
 
-    def test_parse_simple_message(self):
+    def test_parse_simple_message(self, tool):
         """Simple message output should be extracted."""
-        tool = PerplexityResearchTool(api_key="test-key")
         response = self._create_mock_response(
             output_items=[self._create_message_output("Research result text.")],
             model="sonar-pro",
@@ -118,9 +117,8 @@ class TestResponseParsing:
         assert result["model"] == "sonar-pro"
         assert result["status"] == "completed"
 
-    def test_parse_multiple_messages(self):
+    def test_parse_multiple_messages(self, tool):
         """Multiple message blocks should be concatenated."""
-        tool = PerplexityResearchTool(api_key="test-key")
         response = self._create_mock_response(
             output_items=[
                 self._create_message_output("First paragraph."),
@@ -132,10 +130,8 @@ class TestResponseParsing:
         assert "First paragraph." in result["content"]
         assert "Second paragraph." in result["content"]
 
-    def test_parse_annotations_as_citations(self):
+    def test_parse_annotations_as_citations(self, tool):
         """Annotations should be extracted as citations."""
-        tool = PerplexityResearchTool(api_key="test-key")
-
         annotation1 = MagicMock()
         annotation1.url = "https://example.com/paper1"
         annotation1.title = "Paper 1"
@@ -165,10 +161,8 @@ class TestResponseParsing:
             "category": "other",
         }
 
-    def test_parse_deduplicates_citations(self):
+    def test_parse_deduplicates_citations(self, tool):
         """Duplicate URLs should be deduplicated."""
-        tool = PerplexityResearchTool(api_key="test-key")
-
         annotation1 = MagicMock()
         annotation1.url = "https://example.com/same"
         annotation1.title = "Same URL"
@@ -187,9 +181,8 @@ class TestResponseParsing:
 
         assert len(result["citations"]) == 1
 
-    def test_parse_usage_information(self):
+    def test_parse_usage_information(self, tool):
         """Usage information should be extracted."""
-        tool = PerplexityResearchTool(api_key="test-key")
         response = self._create_mock_response(
             output_items=[self._create_message_output("Result")],
             usage={"input_tokens": 100, "output_tokens": 200},
@@ -200,18 +193,15 @@ class TestResponseParsing:
         assert result["usage"]["output_tokens"] == 200
         assert result["usage"]["total_tokens"] == 300
 
-    def test_parse_empty_output(self):
+    def test_parse_empty_output(self, tool):
         """Empty output should return empty content."""
-        tool = PerplexityResearchTool(api_key="test-key")
         response = self._create_mock_response(output_items=[])
         result = tool._parse_response(response)
 
         assert result["content"] == ""
 
-    def test_parse_error_response(self):
+    def test_parse_error_response(self, tool):
         """Error in response should be captured."""
-        tool = PerplexityResearchTool(api_key="test-key")
-
         error = MagicMock()
         error.code = "rate_limit"
         error.message = "Rate limit exceeded"
@@ -413,10 +403,8 @@ class TestClientInitialization:
 class TestConfiguration:
     """Tests for tool configuration."""
 
-    def test_default_configuration(self):
+    def test_default_configuration(self, tool):
         """Tool should use sensible defaults."""
-        tool = PerplexityResearchTool(api_key="test-key")
-
         assert tool.preset == "pro-search"
         assert tool.reasoning_effort == "medium"
         assert tool.max_steps == 5
@@ -444,19 +432,16 @@ class TestConfiguration:
 class TestDescription:
     """Tests for tool description."""
 
-    def test_description_mentions_cost(self):
+    def test_description_mentions_cost(self, tool):
         """Description should mention the cost."""
-        tool = PerplexityResearchTool(api_key="test-key")
         assert "Token-based" in tool.description
 
-    def test_description_mentions_citations(self):
+    def test_description_mentions_citations(self, tool):
         """Description should mention citations."""
-        tool = PerplexityResearchTool(api_key="test-key")
         assert "citation" in tool.description.lower()
 
-    def test_description_mentions_web_search_alternative(self):
+    def test_description_mentions_web_search_alternative(self, tool):
         """Description should mention web_search as free alternative."""
-        tool = PerplexityResearchTool(api_key="test-key")
         assert "web_search" in tool.description
 
 
