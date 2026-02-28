@@ -201,7 +201,8 @@ Deep research using Perplexity's /v1/responses API. The tool code is embedded in
 
 **Parameters:**
 - `query` (required): Research question
-- `preset`: `pro-search` (default), `sonar-pro`, `sonar-reasoning`
+- `mode`: `auto` (default), `research`, `chat` — API mode selection
+- `model`: `sonar-pro` (default), `sonar`, `sonar-reasoning` — model for chat mode
 - `reasoning_effort`: `low`, `medium` (default), `high`
 - `max_steps`: 1-10 (default: 5)
 - `instructions`: Source preferences, domain focus, time constraints
