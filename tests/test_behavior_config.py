@@ -45,15 +45,20 @@ class TestBehaviorConfig:
         content = BEHAVIOR_PATH.read_text()
         lines = content.splitlines()
 
-        # Find lines under config: that have key-value pairs
+        # Collect config key lines: non-empty, non-comment lines under config:
         in_config = False
+        config_key_lines = []
         for line in lines:
             if line.strip().startswith("config:"):
                 in_config = True
                 continue
             if in_config and line.strip() and not line.strip().startswith("#"):
-                # Check if it's a config key (not a continuation or next section)
-                if ":" in line and not line.startswith("      "):
-                    break  # Left the config section
-                if line.startswith("      ") and ":" in line.split("#")[0]:
-                    assert line.startswith("      "), f"Bad indentation: {line!r}"
+                # A line with less indentation means we left the config section
+                if ":" in line and len(line) - len(line.lstrip()) < 6:
+                    break
+                if ":" in line.split("#")[0]:
+                    config_key_lines.append(line)
+
+        assert config_key_lines, "No config key lines found"
+        for line in config_key_lines:
+            assert line.startswith("      "), f"Bad indentation: {line!r}"
