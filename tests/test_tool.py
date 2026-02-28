@@ -18,7 +18,8 @@ class TestInputSchema:
 
         assert schema["type"] == "object"
         assert "query" in schema["properties"]
-        assert "preset" in schema["properties"]
+        assert "mode" in schema["properties"]
+        assert "model" in schema["properties"]
         assert "reasoning_effort" in schema["properties"]
         assert "max_steps" in schema["properties"]
         assert "instructions" in schema["properties"]
@@ -30,13 +31,21 @@ class TestInputSchema:
 
         assert schema["required"] == ["query"]
 
-    def test_preset_enum_values(self):
-        """Preset should have valid enum values."""
+    def test_mode_enum_values(self):
+        """Mode should have valid enum values."""
         tool = PerplexityResearchTool(api_key="test-key")
         schema = tool.input_schema
 
-        preset_schema = schema["properties"]["preset"]
-        assert preset_schema["enum"] == ["pro-search", "sonar-pro", "sonar-reasoning"]
+        mode_schema = schema["properties"]["mode"]
+        assert mode_schema["enum"] == ["auto", "research", "chat"]
+
+    def test_model_enum_values(self):
+        """Model should have valid enum values."""
+        tool = PerplexityResearchTool(api_key="test-key")
+        schema = tool.input_schema
+
+        model_schema = schema["properties"]["model"]
+        assert model_schema["enum"] == ["sonar-pro", "sonar", "sonar-reasoning"]
 
     def test_reasoning_effort_enum_values(self):
         """Reasoning effort should have valid enum values."""
