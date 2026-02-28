@@ -229,10 +229,14 @@ class TestResponseParsing:
 class TestToolExecution:
     """Tests for execute method with mocked SDK."""
 
-    async def test_execute_success(self):
-        """Successful execution should return ToolResult with content."""
-        tool = PerplexityResearchTool(api_key="test-key")
+    @pytest.fixture
+    async def tool(self):
+        t = PerplexityResearchTool(api_key="test-key")
+        yield t
+        await t.close()
 
+    async def test_execute_success(self, tool):
+        """Successful execution should return ToolResult with content."""
         with patch.object(
             tool, "_execute_research", new_callable=AsyncMock
         ) as mock_research:
@@ -247,12 +251,8 @@ class TestToolExecution:
             assert "Result content" in result.output
             mock_research.assert_called_once()
 
-        await tool.close()
-
-    async def test_execute_with_citations(self):
+    async def test_execute_with_citations(self, tool):
         """Execution should include citations in output."""
-        tool = PerplexityResearchTool(api_key="test-key")
-
         with patch.object(
             tool, "_execute_research", new_callable=AsyncMock
         ) as mock_research:
@@ -272,23 +272,15 @@ class TestToolExecution:
             assert "References" in result.output
             assert "AI Paper" in result.output
 
-        await tool.close()
-
-    async def test_execute_missing_query(self):
+    async def test_execute_missing_query(self, tool):
         """Execution without query should fail."""
-        tool = PerplexityResearchTool(api_key="test-key")
-
         result = await tool.execute({})
 
         assert result.success is False
         assert "Missing required parameter: query" in result.error["message"]
 
-        await tool.close()
-
-    async def test_execute_api_error(self):
+    async def test_execute_api_error(self, tool):
         """API errors should return failed ToolResult."""
-        tool = PerplexityResearchTool(api_key="test-key")
-
         with patch.object(
             tool, "_execute_research", new_callable=AsyncMock
         ) as mock_research:
@@ -302,8 +294,6 @@ class TestToolExecution:
 
             assert result.success is False
             assert "API error" in result.error["message"]
-
-        await tool.close()
 
     async def test_execute_timeout(self):
         """Timeout should return failed ToolResult."""
@@ -325,10 +315,8 @@ class TestToolExecution:
 
         await tool.close()
 
-    async def test_execute_rate_limit(self):
+    async def test_execute_rate_limit(self, tool):
         """Rate limit errors should return failed ToolResult."""
-        tool = PerplexityResearchTool(api_key="test-key")
-
         with patch.object(
             tool, "_execute_research", new_callable=AsyncMock
         ) as mock_research:
@@ -343,16 +331,18 @@ class TestToolExecution:
             assert result.success is False
             assert "Rate limited" in result.error["message"]
 
-        await tool.close()
-
 
 class TestToolResult:
     """Tests for ToolResult structure."""
 
-    async def test_result_has_expected_fields(self):
-        """ToolResult should have success, output, and error fields."""
-        tool = PerplexityResearchTool(api_key="test-key")
+    @pytest.fixture
+    async def tool(self):
+        t = PerplexityResearchTool(api_key="test-key")
+        yield t
+        await t.close()
 
+    async def test_result_has_expected_fields(self, tool):
+        """ToolResult should have success, output, and error fields."""
         with patch.object(
             tool, "_execute_research", new_callable=AsyncMock
         ) as mock_research:
@@ -372,8 +362,6 @@ class TestToolResult:
             assert isinstance(result.output, str)
             assert result.success is True
             assert "Result content" in result.output
-
-        await tool.close()
 
 
 class TestClientInitialization:
