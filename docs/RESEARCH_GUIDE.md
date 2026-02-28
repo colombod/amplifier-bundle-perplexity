@@ -18,7 +18,7 @@ The `perplexity_research` tool uses the `/v1/responses` endpoint for deep, groun
 
 ### Research API (`/v1/responses`)
 
-The tool's primary mode. Uses the `pro-search` preset (hardcoded) for deep, multi-step research with autonomous source discovery. Controlled by:
+The tool's primary mode. Performs deep, multi-step research with autonomous source discovery. Controlled by:
 - `reasoning_effort`: low, medium, high (depth of reasoning chains)
 - `max_steps`: 1-10 (maximum research iterations)
 
@@ -151,7 +151,7 @@ Structure response as:
 
 If rate limited:
 1. Wait for the specified retry time
-2. Consider using a less intensive preset
+2. Consider switching to chat mode with a lighter model
 3. Batch queries if possible
 
 ### Timeout

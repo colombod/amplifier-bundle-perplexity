@@ -1,7 +1,7 @@
 # Research Cost Decision Framework
 
 Perplexity research uses **token-based pricing**. Typical queries use 10-15k tokens.
-Actual cost depends on the model/preset used - generally much lower than $5 per query.
+Actual cost depends on the mode and model used - generally much lower than $5 per query.
 
 Use this framework to decide when deep research is worth it.
 
@@ -28,7 +28,7 @@ Ask: "Is this research task valuable enough to justify a paid API call?"
 
 ## Cost Factors
 
-The Agentic Research API uses `pro-search` preset with configurable depth:
+The Agentic Research API uses token-based pricing with configurable depth:
 
 | Reasoning Effort | Token Usage | When to Use |
 |------------------|-------------|-------------|
