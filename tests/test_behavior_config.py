@@ -56,7 +56,7 @@ class TestBehaviorConfig:
             if in_config and stripped and not stripped.startswith("#"):
                 indent = len(line) - len(line.lstrip())
                 # A line with less indentation means we left the config section
-                if ":" in line and indent < 6:
+                if ":" in line.split("#")[0] and indent < 6:
                     break
                 if ":" in line.split("#")[0]:
                     config_key_lines.append(line)
