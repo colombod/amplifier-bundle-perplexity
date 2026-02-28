@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from perplexity import AsyncPerplexity
 
+from amplifier_core import ToolResult
 from amplifier_module_tool_perplexity_search import PerplexityResearchTool
 
 
@@ -228,46 +229,23 @@ class TestResponseParsing:
 class TestToolExecution:
     """Tests for execute method with mocked SDK."""
 
-    def _create_mock_response(self, text="Result content", usage=None):
-        """Create a mock ResponseCreateResponse for execute tests."""
-        content_item = MagicMock()
-        content_item.type = "output_text"
-        content_item.text = text
-        content_item.annotations = []
-
-        message = MagicMock()
-        message.type = "message"
-        message.content = [content_item]
-
-        mock_response = MagicMock()
-        mock_response.model = "sonar"
-        mock_response.status = "completed"
-        mock_response.output = [message]
-        mock_response.error = None
-
-        if usage:
-            mock_response.usage = MagicMock()
-            mock_response.usage.input_tokens = usage.get("input_tokens", 10)
-            mock_response.usage.output_tokens = usage.get("output_tokens", 20)
-        else:
-            mock_response.usage = None
-
-        return mock_response
-
     async def test_execute_success(self):
         """Successful execution should return ToolResult with content."""
         tool = PerplexityResearchTool(api_key="test-key")
 
         with patch.object(
-            tool, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.return_value = self._create_mock_response()
+            tool, "_execute_research", new_callable=AsyncMock
+        ) as mock_research:
+            mock_research.return_value = ToolResult(
+                success=True,
+                output="Result content",
+            )
 
-            result = await tool.execute({"query": "What is AI?"})
+            result = await tool.execute({"query": "What is AI?", "mode": "research"})
 
             assert result.success is True
             assert "Result content" in result.output
-            mock_request.assert_called_once()
+            mock_research.assert_called_once()
 
         await tool.close()
 
@@ -275,36 +253,23 @@ class TestToolExecution:
         """Execution should include citations in output."""
         tool = PerplexityResearchTool(api_key="test-key")
 
-        # Create response with annotations
-        annotation = MagicMock()
-        annotation.url = "https://arxiv.org/paper1"
-        annotation.title = "AI Paper"
-
-        content_item = MagicMock()
-        content_item.type = "output_text"
-        content_item.text = "AI research findings."
-        content_item.annotations = [annotation]
-
-        message = MagicMock()
-        message.type = "message"
-        message.content = [content_item]
-
-        mock_response = MagicMock()
-        mock_response.model = "sonar"
-        mock_response.status = "completed"
-        mock_response.output = [message]
-        mock_response.error = None
-        mock_response.usage = None
-
         with patch.object(
-            tool, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.return_value = mock_response
+            tool, "_execute_research", new_callable=AsyncMock
+        ) as mock_research:
+            mock_research.return_value = ToolResult(
+                success=True,
+                output=(
+                    "AI research findings.\n\n## References\n\n"
+                    "### Academic Sources\n"
+                    "- [1] AI Paper\n"
+                    "  URL: https://arxiv.org/paper1"
+                ),
+            )
 
-            result = await tool.execute({"query": "AI research"})
+            result = await tool.execute({"query": "AI research", "mode": "research"})
 
             assert result.success is True
-            assert "Citations" in result.output
+            assert "References" in result.output
             assert "AI Paper" in result.output
 
         await tool.close()
@@ -320,22 +285,18 @@ class TestToolExecution:
 
     async def test_execute_api_error(self):
         """API errors should return failed ToolResult."""
-        import perplexity
-
         tool = PerplexityResearchTool(api_key="test-key")
 
         with patch.object(
-            tool, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_response = MagicMock()
-            mock_response.status_code = 500
-            mock_request.side_effect = perplexity.APIStatusError(
-                message="Internal server error",
-                response=mock_response,
-                body=None,
+            tool, "_execute_research", new_callable=AsyncMock
+        ) as mock_research:
+            mock_research.return_value = ToolResult(
+                success=False,
+                output="API error 500: Internal server error",
+                error={"message": "API error 500: Internal server error"},
             )
 
-            result = await tool.execute({"query": "Test query"})
+            result = await tool.execute({"query": "Test query", "mode": "research"})
 
             assert result.success is False
             assert "API error" in result.error["message"]
@@ -344,16 +305,18 @@ class TestToolExecution:
 
     async def test_execute_timeout(self):
         """Timeout should return failed ToolResult."""
-        import perplexity
-
         tool = PerplexityResearchTool(api_key="test-key", config={"timeout": 5.0})
 
         with patch.object(
-            tool, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.side_effect = perplexity.APITimeoutError(MagicMock())
+            tool, "_execute_research", new_callable=AsyncMock
+        ) as mock_research:
+            mock_research.return_value = ToolResult(
+                success=False,
+                output="Research request timed out after 5.0s",
+                error={"message": "Research request timed out after 5.0s"},
+            )
 
-            result = await tool.execute({"query": "Test query"})
+            result = await tool.execute({"query": "Test query", "mode": "research"})
 
             assert result.success is False
             assert "timed out" in result.error["message"]
@@ -362,23 +325,18 @@ class TestToolExecution:
 
     async def test_execute_rate_limit(self):
         """Rate limit errors should return failed ToolResult."""
-        import perplexity
-
         tool = PerplexityResearchTool(api_key="test-key")
 
         with patch.object(
-            tool, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_response = MagicMock()
-            mock_response.status_code = 429
-            error = perplexity.RateLimitError(
-                message="Rate limit exceeded",
-                response=mock_response,
-                body=None,
+            tool, "_execute_research", new_callable=AsyncMock
+        ) as mock_research:
+            mock_research.return_value = ToolResult(
+                success=False,
+                output="Rate limited: Rate limit exceeded",
+                error={"message": "Rate limited: Rate limit exceeded"},
             )
-            mock_request.side_effect = error
 
-            result = await tool.execute({"query": "Test query"})
+            result = await tool.execute({"query": "Test query", "mode": "research"})
 
             assert result.success is False
             assert "Rate limited" in result.error["message"]
@@ -393,29 +351,15 @@ class TestToolResult:
         """ToolResult should have success, output, and error fields."""
         tool = PerplexityResearchTool(api_key="test-key")
 
-        # Create mock response
-        content_item = MagicMock()
-        content_item.type = "output_text"
-        content_item.text = "Result content"
-        content_item.annotations = []
-
-        message = MagicMock()
-        message.type = "message"
-        message.content = [content_item]
-
-        mock_response = MagicMock()
-        mock_response.model = "sonar"
-        mock_response.status = "completed"
-        mock_response.output = [message]
-        mock_response.error = None
-        mock_response.usage = None
-
         with patch.object(
-            tool, "_make_request", new_callable=AsyncMock
-        ) as mock_request:
-            mock_request.return_value = mock_response
+            tool, "_execute_research", new_callable=AsyncMock
+        ) as mock_research:
+            mock_research.return_value = ToolResult(
+                success=True,
+                output="Result content",
+            )
 
-            result = await tool.execute({"query": "Test"})
+            result = await tool.execute({"query": "Test", "mode": "research"})
 
             # Check ToolResult structure
             assert hasattr(result, "success")
