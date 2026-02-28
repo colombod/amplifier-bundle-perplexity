@@ -9,7 +9,6 @@ tools:
   - module: tool-perplexity-search
     source: git+https://github.com/colombod/amplifier-bundle-perplexity@main#subdirectory=modules/tool-perplexity-search
     config:
-      preset: pro-search           # Default preset (can override per-call)
       reasoning_effort: medium     # Balance speed vs depth
       max_steps: 5                 # Default max research steps
       timeout: 120.0               # Request timeout in seconds
