@@ -16,13 +16,21 @@ Perplexity offers three main API endpoints:
 
 The `perplexity_research` tool uses the `/v1/responses` endpoint for deep, grounded research.
 
-### Available Presets
+### Research API (`/v1/responses`)
 
-| Preset | Model | Max Steps | Tools | Best For |
-|--------|-------|-----------|-------|----------|
-| `fast-search` | Fast model | 1 | web_search | Quick queries |
-| `pro-search` | GPT-5.1 | 3 | web_search, fetch_url | Balanced research |
-| `deep-research` | GPT-5.2 | 10 | web_search, fetch_url | Exhaustive analysis |
+The tool's primary mode. Uses the `pro-search` preset (hardcoded) for deep, multi-step research with autonomous source discovery. Controlled by:
+- `reasoning_effort`: low, medium, high (depth of reasoning chains)
+- `max_steps`: 1-10 (maximum research iterations)
+
+### Chat API (`/v1/chat/completions`)
+
+Faster, cheaper alternative for simpler queries. Select a model:
+
+| Model | Strength | Best For |
+|-------|----------|----------|
+| `sonar-pro` | Comprehensive | Strong search and retrieval (default) |
+| `sonar` | Fast | Quick lookups, simple queries |
+| `sonar-reasoning` | Reasoning | Complex analysis, reasoning chains |
 
 ### Models (Chat API)
 
@@ -53,17 +61,17 @@ For reference, Perplexity's chat models:
 
 ### Depth Calibration
 
-**Use `pro-search` (default) when:**
-- Balanced depth needed
-- 2-5 sources sufficient
-- Time-sensitive response needed
+**Use research mode (`mode: research`) when:**
+- Deep, multi-step research needed
+- Multiple sources must be synthesized
+- Citation trails are important
 
-**Use `sonar-pro` when:**
-- Comprehensive coverage critical
-- Complex multi-faceted topic
-- Higher cost acceptable
+**Use chat mode with `sonar-pro` when:**
+- Comprehensive coverage needed but deep research isn't required
+- Faster response acceptable
+- Cost optimization desired
 
-**Use `sonar-reasoning` when:**
+**Use chat mode with `sonar-reasoning` when:**
 - Analysis required, not just facts
 - Comparing/contrasting needed
 - Reasoning chain valuable
@@ -151,7 +159,7 @@ If rate limited:
 If timeout occurs:
 1. Reduce `max_steps` parameter
 2. Narrow the query scope
-3. Use `pro-search` instead of `deep-research`
+3. Use chat mode instead of research mode for simpler queries
 
 ### Insufficient Results
 
@@ -182,7 +190,7 @@ Cost: ~$5
 
 1. Start with free `web_search` for simple facts
 2. Escalate to `perplexity_research` only if insufficient
-3. Use `deep-research` preset only for truly complex topics
+3. Use research mode only for truly complex topics
 
 ### Caching Strategy
 
