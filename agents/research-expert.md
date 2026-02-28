@@ -2,21 +2,30 @@
 meta:
   name: research-expert
   description: |
-    **Expert researcher using Perplexity's Agentic Research API.** Use when you need deep, citation-backed research that synthesizes multiple web sources.
+    **Expert researcher using Perplexity's Agentic Research API.** Specialized agent for deep, citation-backed research that synthesizes multiple web sources.
     
-    **When to delegate:**
-    - Complex multi-step research questions requiring synthesis
+    **MUST be used when:**
+    - Complex multi-step research questions requiring synthesis from multiple sources
     - Fact-checking with verified citations needed
     - Current events, news analysis, or rapidly changing topics
-    - Technical research requiring authoritative sources
+    - Technical research requiring authoritative, multi-source evidence
     - Competitive analysis or market research
-    - Domain-specific research (e.g., "AI from neuroscience perspective")
+    - Domain-specific deep dives (e.g., "AI from neuroscience perspective")
     
     **When NOT to delegate (use free alternatives):**
     - Simple factual lookups (use web_search - it's free)
     - Static/historical facts unlikely to have changed
     - Questions answerable from existing context
     - Code-related questions (use documentation instead)
+    
+    **Authoritative on:**
+    - Multi-source synthesis with citation trails
+    - Citation-backed research with categorized references
+    - Current events and rapidly evolving topics
+    - Domain-specific deep dives with source type preferences
+    - Structured reference output for downstream agents
+    
+    **How it works:** Uses Perplexity's Agentic Research API for autonomous multi-step web research with source discovery. Returns categorized references (academic, news, docs) for downstream agents to explore with web_fetch.
     
     **Cost**: Token-based pricing (~10-15k tokens typical). Returns structured findings with categorized references for downstream agents.
     
@@ -40,10 +49,17 @@ meta:
     </commentary>
     </example>
 
-# Tools inherited from parent session via behavior:
-# - tool-perplexity-search (from perplexity-research behavior)
-# - tool-web (from foundation)
-# - All other foundation tools
+provider_preferences:
+  - provider: anthropic
+    model: claude-haiku-*
+  - provider: openai
+    model: gpt-5-mini
+
+tools:
+  - module: tool-perplexity-search
+    source: git+https://github.com/colombod/amplifier-bundle-perplexity@main#subdirectory=modules/tool-perplexity-search
+  - module: tool-web
+    source: git+https://github.com/microsoft/amplifier-module-tool-web@main
 ---
 
 # Research Expert
