@@ -14,7 +14,7 @@ Basic Usage:
 
 import logging
 import os
-from typing import Any
+from typing import Any, TypedDict
 
 import perplexity
 from perplexity import AsyncPerplexity
@@ -26,6 +26,36 @@ from amplifier_core import ModuleCoordinator, ToolResult
 __all__ = ["PerplexityResearchTool", "mount"]
 
 logger = logging.getLogger(__name__)
+
+
+class _ErrorInfo(TypedDict, total=False):
+    """Error information from a failed response."""
+
+    code: str
+    message: str
+
+
+class _ParsedResultRequired(TypedDict):
+    """Required fields always set by _parse_response / _execute_chat."""
+
+    content: str
+    citations: list[dict[str, str]]
+    usage: dict[str, int]
+    model: str
+    status: str
+
+
+class ParsedResult(_ParsedResultRequired, total=False):
+    """Structured result from _parse_response.
+
+    Makes the contract between _parse_response and _format_structured_output
+    explicit with typed fields instead of dict[str, Any].
+
+    Core fields (content, citations, usage, model, status) are always present.
+    The 'error' field is set only when the response contains an error.
+    """
+
+    error: _ErrorInfo
 
 
 class PerplexityResearchTool:
@@ -346,6 +376,7 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             # Extract content from chat response
             content = ""
             citations: list[dict[str, str]] = []
+            seen_urls: set[str] = set()
 
             if response.choices and len(response.choices) > 0:
                 message = response.choices[0].message
@@ -354,7 +385,8 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
                 # Extract citations if available
                 if hasattr(message, "citations") and message.citations:
                     for url in message.citations:
-                        if url not in [c["url"] for c in citations]:
+                        if url not in seen_urls:
+                            seen_urls.add(url)
                             citations.append(
                                 {
                                     "url": url,
@@ -364,7 +396,7 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
                             )
 
             # Build result
-            result: dict[str, Any] = {
+            result: ParsedResult = {
                 "content": content,
                 "citations": citations,
                 "usage": {},
@@ -494,6 +526,59 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             }
         )
 
+    # Domain-to-category mapping for URL classification.
+    # Add/remove domains here without touching control flow.
+    _URL_CATEGORIES: dict[str, list[str]] = {
+        "academic": [
+            "arxiv.org",
+            "doi.org",
+            "pubmed",
+            "springer.com",
+            "nature.com",
+            "sciencedirect",
+            ".edu/",
+            "acm.org",
+            "ieee.org",
+            "scholar.google",
+            "ncbi.nlm.nih",
+            "plos.org",
+            "frontiersin.org",
+            "biorxiv.org",
+            "medrxiv.org",
+            "researchgate.net",
+            "semanticscholar.org",
+        ],
+        "docs": [
+            "docs.",
+            "/docs/",
+            "documentation",
+            "readme",
+            "github.com",
+            "gitlab.com",
+            "api.",
+            "developer.",
+            "devdocs",
+        ],
+        "news": [
+            "techcrunch",
+            "wired.com",
+            "theverge",
+            "arstechnica",
+            "bbc.",
+            "cnn.",
+            "reuters.",
+            "nytimes",
+            "wsj.com",
+            "bloomberg.",
+            "/news/",
+            "/blog/",
+            "medium.com",
+            "substack.com",
+            "venturebeat",
+            "thenextweb",
+        ],
+    }
+
     def _categorize_url(self, url: str) -> str:
         """Categorize a URL by source type.
 
@@ -504,85 +589,21 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
             Category string: "academic", "news", "docs", or "other"
         """
         url_lower = url.lower()
-
-        # Academic indicators
-        if any(
-            domain in url_lower
-            for domain in [
-                "arxiv.org",
-                "doi.org",
-                "pubmed",
-                "springer.com",
-                "nature.com",
-                "sciencedirect",
-                ".edu/",
-                "acm.org",
-                "ieee.org",
-                "scholar.google",
-                "ncbi.nlm.nih",
-                "plos.org",
-                "frontiersin.org",
-                "biorxiv.org",
-                "medrxiv.org",
-                "researchgate.net",
-                "semanticscholar.org",
-            ]
-        ):
-            return "academic"
-
-        # Documentation indicators
-        if any(
-            domain in url_lower
-            for domain in [
-                "docs.",
-                "/docs/",
-                "documentation",
-                "readme",
-                "github.com",
-                "gitlab.com",
-                "api.",
-                "developer.",
-                "devdocs",
-            ]
-        ):
-            return "docs"
-
-        # News indicators
-        if any(
-            domain in url_lower
-            for domain in [
-                "techcrunch",
-                "wired.com",
-                "theverge",
-                "arstechnica",
-                "bbc.",
-                "cnn.",
-                "reuters.",
-                "nytimes",
-                "wsj.com",
-                "bloomberg.",
-                "/news/",
-                "/blog/",
-                "medium.com",
-                "substack.com",
-                "venturebeat",
-                "thenextweb",
-            ]
-        ):
-            return "news"
-
+        for category, domains in self._URL_CATEGORIES.items():
+            if any(domain in url_lower for domain in domains):
+                return category
         return "other"
 
-    def _parse_response(self, response: ResponseCreateResponse) -> dict[str, Any]:
+    def _parse_response(self, response: ResponseCreateResponse) -> ParsedResult:
         """Parse the typed SDK response into a structured result.
 
         Args:
             response: Typed ResponseCreateResponse from SDK
 
         Returns:
-            Structured result with content, categorized citations, usage
+            ParsedResult with content, categorized citations, usage
         """
-        result: dict[str, Any] = {
+        result: ParsedResult = {
             "content": "",
             "citations": [],
             "usage": {},
@@ -660,14 +681,14 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
 
         return result
 
-    def _format_structured_output(self, result: dict[str, Any]) -> str:
+    def _format_structured_output(self, result: ParsedResult) -> str:
         """Format the parsed result into structured markdown output.
 
         Groups citations by category and provides a clean format for
         downstream agents to extract URLs.
 
         Args:
-            result: Parsed result from _parse_response
+            result: ParsedResult from _parse_response or _execute_chat
 
         Returns:
             Formatted markdown string with categorized references

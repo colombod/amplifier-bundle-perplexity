@@ -287,23 +287,24 @@ class TestToolExecution:
 
     async def test_execute_timeout(self):
         """Timeout should return failed ToolResult."""
-        tool = PerplexityResearchTool(api_key="test-key", config={"timeout": 5.0})
+        async with PerplexityResearchTool(
+            api_key="test-key", config={"timeout": 5.0}
+        ) as timeout_tool:
+            with patch.object(
+                timeout_tool, "_execute_research", new_callable=AsyncMock
+            ) as mock_research:
+                mock_research.return_value = ToolResult(
+                    success=False,
+                    output="Research request timed out after 5.0s",
+                    error={"message": "Research request timed out after 5.0s"},
+                )
 
-        with patch.object(
-            tool, "_execute_research", new_callable=AsyncMock
-        ) as mock_research:
-            mock_research.return_value = ToolResult(
-                success=False,
-                output="Research request timed out after 5.0s",
-                error={"message": "Research request timed out after 5.0s"},
-            )
+                result = await timeout_tool.execute(
+                    {"query": "Test query", "mode": "research"}
+                )
 
-            result = await tool.execute({"query": "Test query", "mode": "research"})
-
-            assert result.success is False
-            assert "timed out" in result.error["message"]
-
-        await tool.close()
+                assert result.success is False
+                assert "timed out" in result.error["message"]
 
     async def test_execute_rate_limit(self, tool):
         """Rate limit errors should return failed ToolResult."""
