@@ -49,16 +49,19 @@ class TestBehaviorConfig:
         in_config = False
         config_key_lines = []
         for line in lines:
-            if line.strip().startswith("config:"):
+            stripped = line.strip()
+            if stripped.startswith("config:"):
                 in_config = True
                 continue
-            if in_config and line.strip() and not line.strip().startswith("#"):
+            if in_config and stripped and not stripped.startswith("#"):
+                indent = len(line) - len(line.lstrip())
                 # A line with less indentation means we left the config section
-                if ":" in line and len(line) - len(line.lstrip()) < 6:
+                if ":" in line and indent < 6:
                     break
                 if ":" in line.split("#")[0]:
                     config_key_lines.append(line)
 
         assert config_key_lines, "No config key lines found"
         for line in config_key_lines:
-            assert line.startswith("      "), f"Bad indentation: {line!r}"
+            indent = len(line) - len(line.lstrip())
+            assert indent == 6, f"Bad indentation: {line!r}"
