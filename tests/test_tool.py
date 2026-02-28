@@ -447,7 +447,7 @@ class TestDescription:
     def test_description_mentions_cost(self):
         """Description should mention the cost."""
         tool = PerplexityResearchTool(api_key="test-key")
-        assert "$5" in tool.description
+        assert "Token-based" in tool.description
 
     def test_description_mentions_citations(self):
         """Description should mention citations."""
