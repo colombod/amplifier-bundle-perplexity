@@ -45,15 +45,20 @@ Cost varies by query complexity but is generally affordable for research tasks.
 
 ## API Details
 
-The `perplexity_research` tool uses Perplexity's **Agentic Research API** which:
-- Performs multi-step web research with citations
-- Supports reasoning chains for complex analysis
-- Uses the `pro-search` preset (the only valid preset for this API)
+The `perplexity_research` tool supports two API modes:
+
+**Research mode** (`mode: research` or `auto`): Uses Perplexity's **Agentic Research API** (`/v1/responses`) for deep, multi-step web research with autonomous source discovery and citations.
+
+**Chat mode** (`mode: chat`): Uses Perplexity's **Chat Completions API** (`/v1/chat/completions`) for faster, cheaper queries. Select a model: `sonar-pro` (comprehensive), `sonar` (fast), or `sonar-reasoning` (with reasoning).
+
+**Auto mode** (`mode: auto`, the default): Tries research first, falls back to chat on quota or rate limits.
 
 | Parameter | Values | Description |
 |-----------|--------|-------------|
-| `reasoning_effort` | low, medium, high | Depth of reasoning chains |
-| `max_steps` | 1-10 | Maximum research iterations |
+| `mode` | auto, research, chat | API mode (default: auto) |
+| `model` | sonar-pro, sonar, sonar-reasoning | Model for chat mode (default: sonar-pro) |
+| `reasoning_effort` | low, medium, high | Depth of reasoning (research mode only) |
+| `max_steps` | 1-10 | Maximum research iterations (research mode only) |
 | `instructions` | text | Additional guidance for the research |
 
 ## Delegation
