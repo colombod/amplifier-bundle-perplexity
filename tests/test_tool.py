@@ -153,8 +153,16 @@ class TestResponseParsing:
         result = tool._parse_response(response)
 
         assert len(result["citations"]) == 2
-        assert "Paper 1: https://example.com/paper1" in result["citations"]
-        assert "Paper 2: https://example.com/paper2" in result["citations"]
+        assert result["citations"][0] == {
+            "url": "https://example.com/paper1",
+            "title": "Paper 1",
+            "category": "other",
+        }
+        assert result["citations"][1] == {
+            "url": "https://example.com/paper2",
+            "title": "Paper 2",
+            "category": "other",
+        }
 
     def test_parse_deduplicates_citations(self):
         """Duplicate URLs should be deduplicated."""
