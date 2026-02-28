@@ -460,11 +460,11 @@ class TestDescription:
         assert "web_search" in tool.description
 
 
-class TestMakeRequest:
-    """Tests for _make_request method."""
+class TestMakeResearchRequest:
+    """Tests for _make_research_request method."""
 
-    async def test_make_request_calls_sdk_method(self):
-        """_make_request should call client.responses.create()."""
+    async def test_make_research_request_calls_sdk_method(self):
+        """_make_research_request should call client.responses.create()."""
         tool = PerplexityResearchTool(api_key="test-key")
 
         mock_response = MagicMock()
@@ -474,21 +474,18 @@ class TestMakeRequest:
         with patch.object(tool, "_client", create=True) as mock_client:
             mock_client.responses = mock_responses
 
-            result = await tool._make_request(
+            result = await tool._make_research_request(
                 query="Test query",
-                preset="pro-search",
                 reasoning_effort="medium",
                 max_steps=5,
                 instructions="Test instructions",
             )
 
             mock_responses.create.assert_called_once_with(
-                input="Test query",
+                input="Test instructions\n\nResearch question: Test query",
                 preset="pro-search",
                 reasoning={"effort": "medium"},
                 max_steps=5,
-                tools=[{"type": "web_search"}, {"type": "fetch_url"}],
-                instructions="Test instructions",
             )
             assert result == mock_response
 
