@@ -24,10 +24,10 @@ steps:
       Output:
       1. Restate the question clearly
       2. Identify 2-3 sub-questions to answer
-      3. Recommend preset based on complexity:
-         - pro-search: Standard research
-         - sonar-pro: Comprehensive coverage needed
-         - sonar-reasoning: Complex analysis required
+      3. Recommend mode and model based on complexity:
+         - research mode (default): Deep multi-step research via Agentic API
+         - chat mode with sonar-pro: Faster, comprehensive coverage
+         - chat mode with sonar-reasoning: Complex analysis with reasoning chains
       4. Estimate if this justifies the token cost (~10-50k tokens, YES/NO with reasoning)
       
       Format your response as a structured research plan.
@@ -42,7 +42,7 @@ steps:
       **Original Question:** {{research_question}}
       **Research Plan:** {{research_plan}}
       
-      Use the `perplexity_research` tool with the recommended preset.
+      Use the `perplexity_research` tool with the recommended mode and model.
       
       Provide comprehensive findings following the response contract:
       - Research Summary (2-3 sentences)
