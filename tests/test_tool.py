@@ -283,6 +283,8 @@ class TestToolExecution:
         assert result.success is False
         assert "Missing required parameter: query" in result.error["message"]
 
+        await tool.close()
+
     async def test_execute_api_error(self):
         """API errors should return failed ToolResult."""
         tool = PerplexityResearchTool(api_key="test-key")
