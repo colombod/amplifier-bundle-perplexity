@@ -21,16 +21,16 @@
 | Task | Description | Status | Quality | Notes |
 |------|-------------|--------|---------|-------|
 | 1 | Remove dead `preset` config from behavior YAML | DONE | :warning: REVIEW NEEDED | Quality loop exhausted (3 iterations) — see details below |
-| 2 | Update agent frontmatter | PENDING | — | |
-| 3 | Update agent body | PENDING | — | |
-| 4 | Sync `context/research-awareness.md` | PENDING | — | |
-| 5 | Sync `docs/RESEARCH_GUIDE.md` | PENDING | — | |
-| 6 | Fix schema tests | PENDING | — | |
-| 7 | Fix citation format tests | PENDING | — | |
+| 2 | Update agent frontmatter | DONE | APPROVED | 19 tests, 1 commit |
+| 3 | Update agent body | DONE | APPROVED | 17 tests, 1 commit |
+| 4 | Sync `context/research-awareness.md` | DONE | APPROVED | 9 tests, 1 commit |
+| 5 | Sync `docs/RESEARCH_GUIDE.md` | DONE | APPROVED | 13 tests, 1 commit |
+| 6 | Fix schema tests | DONE | APPROVED | 6 tests fixed, 1 commit |
+| 7 | Fix citation format tests | DONE | APPROVED | 7 tests fixed, 1 commit |
 | 8 | Fix execution mock targets | DONE | :warning: REVIEW NEEDED | Quality loop exhausted (3 iterations) — see details below |
-| 9 | Fix `TestMakeRequest` → `TestMakeResearchRequest` | PENDING | — | |
-| 10 | Fix description test | PENDING | — | |
-| 11 | Run full test suite and validate | PENDING | — | |
+| 9 | Fix `TestMakeRequest` → `TestMakeResearchRequest` | DONE | APPROVED | 1 test fixed, 1 commit |
+| 10 | Fix description test | DONE | APPROVED | 3 tests fixed, 1 commit |
+| 11 | Run full test suite and validate | DONE | APPROVED | 94/94 pass, cleanup commit |
 
 ### Task 1 Quality Review Warning
 
@@ -1086,3 +1086,101 @@ git commit -m "chore: final validation cleanup"
 | `TestDescription` | 10 | `"$5"` → `"Token-based"` |
 | `TestMakeRequest` → `TestMakeResearchRequest` | 9 | New method name, new signature, new `assert_called_once_with` |
 | `TestMount` | — | No changes needed |
+
+---
+
+## Completion Summary
+
+### Completion Status
+
+- **Total tasks:** 11
+- **Successfully completed:** 11 / 11 (100%)
+- **Final test suite:** 94 / 94 passing (0.22s)
+- **Stale `preset` references in edited files:** 0 (verified by grep)
+- **Total commits:** 15 (11 task commits + 4 refinement commits from quality review loops)
+
+### :warning: Tasks Requiring Human Review
+
+Two tasks had their automated quality review loops exhaust the 3-iteration budget. In both cases the **final verdict was APPROVED** with no critical issues — the loop mechanic did not complete cleanly, but the code is sound.
+
+| Task | Issue | Final Verdict | Risk |
+|------|-------|---------------|------|
+| **Task 1** | Quality loop exhausted (3 iterations) on test refinement | APPROVED — no critical/important issues | LOW — the YAML change itself is trivial; iterations were on bonus test quality |
+| **Task 8** | Quality loop exhausted (3 iterations) on fixture extraction | APPROVED — no critical/important issues | LOW — implementer improved on spec with yield-based fixtures |
+
+See the detailed "Task 1 Quality Review Warning" and "Task 8 Quality Review Warning" sections above for full evidence.
+
+### Per-Task Summary
+
+#### Group A: Documentation and Config Sync (Tasks 1–5)
+
+| Task | Name | Spec | Quality | Files Modified | Tests | Commits |
+|------|------|------|---------|----------------|-------|---------|
+| 1 | Remove dead `preset` config | APPROVED | :warning: REVIEW NEEDED | `behaviors/perplexity-research.yaml` | 4 (new) | 4 (3 refinement) |
+| 2 | Update agent frontmatter | APPROVED | APPROVED | `agents/research-expert.md` | 19 (new) | 1 |
+| 3 | Update agent body | APPROVED | APPROVED | `agents/research-expert.md` | 17 (new) | 1 |
+| 4 | Sync research-awareness.md | APPROVED | APPROVED | `context/research-awareness.md` | 9 (new) | 1 |
+| 5 | Sync RESEARCH_GUIDE.md | APPROVED | APPROVED | `docs/RESEARCH_GUIDE.md` | 13 (new) | 1 |
+
+#### Group B: Test Fixes (Tasks 6–10)
+
+| Task | Name | Spec | Quality | Files Modified | Tests Fixed | Commits |
+|------|------|------|---------|----------------|-------------|---------|
+| 6 | Fix schema tests | APPROVED | APPROVED | `tests/test_tool.py` | 6 | 1 |
+| 7 | Fix citation format tests | APPROVED | APPROVED | `tests/test_tool.py` | 7 | 1 |
+| 8 | Fix execution mock targets | APPROVED | :warning: REVIEW NEEDED | `tests/test_tool.py` | 7 | 3 (2 refinement) |
+| 9 | Fix TestMakeRequest rename | APPROVED | APPROVED | `tests/test_tool.py` | 1 | 1 |
+| 10 | Fix description test | APPROVED | APPROVED | `tests/test_tool.py` | 3 | 1 |
+
+#### Group C: Validation (Task 11)
+
+| Task | Name | Spec | Quality | Result | Commits |
+|------|------|------|---------|--------|---------|
+| 11 | Full suite validation | APPROVED | APPROVED | 94/94 pass, 0 stale refs | 1 (cleanup) |
+
+### Files Changed (All Tasks Combined)
+
+**Config:**
+- `behaviors/perplexity-research.yaml` — Removed dead `preset: pro-search` line
+
+**Agent:**
+- `agents/research-expert.md` — New frontmatter (provider_preferences, tools, enhanced description) + body updated (preset → mode/model)
+
+**Documentation:**
+- `context/research-awareness.md` — API Details section rewritten for mode/model
+- `context/cost-guidance.md` — 2 stale preset references cleaned up (Task 11)
+- `docs/RESEARCH_GUIDE.md` — Replaced unreachable presets with Research/Chat API sections + 2 stale refs cleaned (Task 11)
+
+**Tests:**
+- `tests/test_tool.py` — Fixed 5 test classes: schema (preset→mode/model), citations (string→dict), execution mocks (_make_request→_execute_research), request method rename, description assertion
+- `tests/test_behavior_config.py` — New (4 tests, deviation from plan — bonus regression protection)
+- `tests/test_agent_frontmatter.py` — New (19 tests)
+- `tests/test_agent_body.py` — New (17 tests)
+- `tests/test_research_awareness_docs.py` — New (9 tests)
+- `tests/test_research_guide_docs.py` — New (13 tests)
+
+### Issues Found and Resolved During Reviews
+
+1. **Task 1 — Test quality iteration (3 rounds):** The implementer added bonus tests for the YAML config (not in plan). Quality review flagged a tautological indentation check, then a consistency nit in section-exit heuristic. Both were refined. The YAML change itself was correct from iteration 1.
+
+2. **Task 8 — Fixture extraction and cleanup (3 rounds):** First iteration missed `await tool.close()` in `test_execute_missing_query`. Second iteration added it. Third iteration extracted a `@pytest.fixture` with `yield` pattern — an improvement over the spec's inline cleanup, guaranteeing teardown even on assertion failure. The `test_execute_timeout` test correctly kept manual setup since it requires custom `config={"timeout": 5.0}`.
+
+3. **Task 11 — Stale preset references in docs:** Final validation grep found 4 remaining "preset" occurrences in `context/cost-guidance.md` (2) and `docs/RESEARCH_GUIDE.md` (2) that weren't caught by earlier tasks. All were fixed in the cleanup commit.
+
+### Git Log (Chronological)
+
+```
+e14a9d5 fix: make section-exit colon check consistent with config-key check
+b79f8de feat: add provider_preferences, tools, and enhanced description to research-expert agent
+0fb12cb feat: replace preset references with mode/model sections in agent body
+8f65403 docs: sync research-awareness.md API Details with mode/model parameters
+3053119 fix: sync RESEARCH_GUIDE.md to use mode/model instead of unreachable presets
+0605592 fix: update TestInputSchema tests to match mode/model schema (replacing preset)
+43b5dd7 fix: update citation format assertions to match dict return type
+70cf73b fix: update TestToolExecution and TestToolResult mock targets
+e04c48c fix: add missing await tool.close() in test_execute_missing_query
+eacef1c refactor: extract pytest fixtures for tool creation/cleanup in execution tests
+4101286 fix: rename TestMakeRequest to TestMakeResearchRequest to match API change
+866be49 fix: update description test to match token-based cost wording
+d4f1b68 chore: final validation cleanup - remove stale preset references from docs
+```
