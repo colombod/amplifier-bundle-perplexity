@@ -89,34 +89,21 @@ class TestTools:
         data = _load_frontmatter()
         assert "tools" in data
 
-    def test_two_tools(self):
-        """Should have exactly two tool entries."""
+    def test_one_tool(self):
+        """Should have exactly one tool entry."""
         data = _load_frontmatter()
         tools = data["tools"]
-        assert len(tools) == 2, f"Expected 2 tools, got {len(tools)}"
+        assert len(tools) == 1, f"Expected 1 tool, got {len(tools)}"
 
-    def test_first_tool_perplexity_search(self):
-        """First tool is tool-perplexity-search with correct git URL + subdirectory."""
+    def test_tool_web(self):
+        """Tool is tool-web with correct git URL."""
         data = _load_frontmatter()
-        first = data["tools"][0]
-        assert first["module"] == "tool-perplexity-search"
-        expected_source = (
-            "git+https://github.com/colombod/amplifier-bundle-perplexity"
-            "@main#subdirectory=modules/tool-perplexity-search"
-        )
-        assert first["source"] == expected_source, (
-            f"Expected source:\n  {expected_source}\nGot:\n  {first['source']}"
-        )
-
-    def test_second_tool_web(self):
-        """Second tool is tool-web with correct git URL."""
-        data = _load_frontmatter()
-        second = data["tools"][1]
-        assert second["module"] == "tool-web"
+        tool = data["tools"][0]
+        assert tool["module"] == "tool-web"
         expected_source = (
             "git+https://github.com/microsoft/amplifier-module-tool-web@main"
         )
-        assert second["source"] == expected_source
+        assert tool["source"] == expected_source
 
 
 class TestDescription:
