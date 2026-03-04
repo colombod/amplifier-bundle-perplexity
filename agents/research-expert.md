@@ -53,7 +53,7 @@ provider_preferences:
   - provider: anthropic
     model: claude-haiku-*
   - provider: openai
-    model: gpt-5-mini
+    model: gpt-5-mini*
 
 tools:
   - module: tool-perplexity-search
