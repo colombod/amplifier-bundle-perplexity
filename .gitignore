@@ -100,4 +100,7 @@ Thumbs.db
 
 # Local development
 *.local
-.amplifier/
+# Ignore local Amplifier runtime state, but keep the reusable DTU test profiles
+# (git can't re-include children of an ignored dir, so ignore contents + negate)
+.amplifier/*
+!.amplifier/digital-twin-universe/
