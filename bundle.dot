@@ -8,12 +8,12 @@ digraph perplexity {
     nodesep=0.6
     ranksep=0.7
     bgcolor="white"
-    source_hash="32b1cdf4ea0cd489cf174f7c910abf9894faa8b661ca5bb56bd67aba21918789"
+    source_hash="f978b6b8b4368f40fb761f751ce84822c0816811e81c63aed460f5ecf36d89c3"
 
     node [fontname="Helvetica", fontsize=11, style="filled,rounded"]
     edge [fontname="Helvetica", fontsize=9]
 
-    root_perplexity [label="perplexity v1.0.0\n0 tools · 0 agents\n~838 tok aggregate", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", penwidth=2]
+    root_perplexity [label="perplexity v1.0.0\n0 tools · 0 agents\n~909 tok aggregate", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", penwidth=2]
 
     subgraph cluster_behaviors {
         label="Behaviors"
@@ -21,7 +21,7 @@ digraph perplexity {
         fillcolor="#f9f9f9"
         color="#999999"
 
-        beh_perplexity_research_behavior [label="perplexity-research-behavior\n1 tools · 1 ctx\n~1454 tok", shape=box, fillcolor="#e0f2f1", style="filled,rounded"]
+        beh_perplexity_research_behavior [label="perplexity-research-behavior\n2 tools · 1 ctx\n~1605 tok", shape=box, fillcolor="#e0f2f1", style="filled,rounded"]
     }
 
     subgraph cluster_agents {
@@ -39,6 +39,7 @@ digraph perplexity {
         fillcolor="#f9f9f9"
         color="#999999"
 
+        mod_hooks_perplexity_nudge [label="hooks-perplexity-nudge", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
         mod_tool_perplexity_search [label="tool-perplexity-search\n2 tool · ~305 tok", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
     }
 
@@ -48,7 +49,7 @@ digraph perplexity {
         fillcolor="#f9f9f9"
         color="#999999"
 
-        ctx_research_awareness_md [label="research-awareness.md\n~710 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
+        ctx_research_awareness_md [label="research-awareness.md\n~781 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
     }
 
     subgraph cluster_legend {
@@ -78,6 +79,7 @@ digraph perplexity {
     root_perplexity -> beh_perplexity_research_behavior [label="composes"]
     beh_perplexity_research_behavior -> agt_research_expert [label="owns"]
     beh_perplexity_research_behavior -> mod_tool_perplexity_search [label="uses", penwidth=0.8]
+    beh_perplexity_research_behavior -> mod_hooks_perplexity_nudge [label="uses", penwidth=0.8]
     beh_perplexity_research_behavior -> ctx_research_awareness_md [style=dotted, color=purple]
     root_perplexity -> ctx_research_awareness_md [style=dotted, color=purple]
 }

@@ -65,6 +65,8 @@ The `perplexity_research` tool supports two API modes:
 
 For any substantial research task, delegate to `perplexity:research-expert` - it carries the full research methodology and cost-benefit framework.
 
+A stuck-detection nudge (`hooks-perplexity-nudge`) is active in this bundle: if you find yourself looping on repeated errors or guessing without converging, it will remind you to delegate to `perplexity:research-expert` to get authoritative, multi-source answers before continuing.
+
 ## Environment
 
 Requires `PERPLEXITY_API_KEY` environment variable. If absent, the tool mounts in disabled mode and returns an error when invoked.

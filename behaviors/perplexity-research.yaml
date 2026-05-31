@@ -20,3 +20,14 @@ agents:
 context:
   include:
     - perplexity:context/research-awareness.md
+
+hooks:
+  - module: hooks-perplexity-nudge
+    source: git+https://github.com/colombod/amplifier-bundle-perplexity@main#subdirectory=modules/hooks-perplexity-nudge
+    config:
+      enabled: true
+      cooldown_turns: 6
+      max_injections: 3
+      scan_depth: 6
+      loop_threshold: 3
+      error_repeat_threshold: 2
