@@ -73,11 +73,25 @@ class TestModelRole:
         data = _load_frontmatter()
         assert "model_role" in data
 
-    def test_model_role_is_research(self):
-        """model_role must be 'research' (semantically correct for deep research)."""
+    def test_model_role_is_research_chain(self):
+        """model_role must be the [research, general] fallback chain.
+
+        'research' is the semantically correct primary role (deep investigation /
+        multi-source synthesis) and is a real role defined in the routing-matrix
+        bundle's role definitions and every curated matrix. Per the routing-matrix
+        role definitions, the documented example chain for this role is
+        [research, general] so it degrades to the universal catch-all when the
+        research candidates' providers are not installed.
+        """
         data = _load_frontmatter()
-        assert data["model_role"] == "research", (
-            f"Expected model_role='research', got {data['model_role']!r}"
+        role = data["model_role"]
+        assert isinstance(role, list), f"Expected a fallback chain list, got {role!r}"
+        assert role[0] == "research", f"Chain must start with 'research', got {role!r}"
+        assert role[-1] in ("general", "fast"), (
+            f"Chain must end with a universal catch-all (general/fast), got {role!r}"
+        )
+        assert role == ["research", "general"], (
+            f"Expected ['research', 'general'], got {role!r}"
         )
 
     def test_no_provider_preferences(self):

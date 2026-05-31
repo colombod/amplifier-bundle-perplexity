@@ -49,7 +49,9 @@ meta:
     </commentary>
     </example>
 
-model_role: research
+model_role:
+  - research
+  - general
 
 tools:
   - module: tool-perplexity-search
