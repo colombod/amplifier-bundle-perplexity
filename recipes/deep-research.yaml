@@ -14,6 +14,7 @@ context:
 
 steps:
   - id: "scope-research"
+    agent: "perplexity:research-expert"
     prompt: |
       Analyze this research question and create a research plan:
 
@@ -51,8 +52,10 @@ steps:
     output: "primary_findings"
     timeout: 300
     depends_on: ["scope-research"]
+    on_error: continue
 
   - id: "verify-claims"
+    agent: "perplexity:research-expert"
     prompt: |
       Verify the top 3 most important claims from this research:
 
@@ -73,8 +76,10 @@ steps:
     timeout: 180
     depends_on: ["primary-research"]
     condition: "{{verify_claims}}"
+    on_error: continue
 
   - id: "synthesize-report"
+    agent: "perplexity:research-expert"
     prompt: |
       Create the final research report:
 
@@ -111,8 +116,4 @@ steps:
     output: "final_report"
     timeout: 180
     depends_on: ["primary-research", "verify-claims"]
-
-outputs:
-  report: "{{final_report}}"
-  sources: "{{primary_findings}}"
-  verification: "{{verification_results}}"
+    on_error: continue

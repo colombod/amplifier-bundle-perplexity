@@ -13,6 +13,7 @@ context:
 
 steps:
   - id: "triage-claims"
+    agent: "perplexity:research-expert"
     prompt: |
       Triage these claims for fact-checking:
 
@@ -42,8 +43,10 @@ steps:
       Be conservative - prefer SIMPLE over COMPLEX when in doubt to minimize costs.
     output: "triaged_claims"
     timeout: 120
+    on_error: continue
 
   - id: "quick-verify"
+    agent: "perplexity:research-expert"
     prompt: |
       Verify the SIMPLE and CONTEXT claims from this triage:
 
@@ -74,6 +77,7 @@ steps:
     output: "quick_results"
     timeout: 180
     depends_on: ["triage-claims"]
+    on_error: continue
 
   - id: "deep-verify"
     agent: "perplexity:research-expert"
@@ -106,8 +110,10 @@ steps:
     output: "deep_results"
     timeout: 300
     depends_on: ["triage-claims"]
+    on_error: continue
 
   - id: "compile-report"
+    agent: "perplexity:research-expert"
     prompt: |
       Compile fact-check results into final report:
 
@@ -149,9 +155,4 @@ steps:
     output: "fact_check_report"
     timeout: 120
     depends_on: ["quick-verify", "deep-verify"]
-
-outputs:
-  report: "{{fact_check_report}}"
-  triage: "{{triaged_claims}}"
-  simple_results: "{{quick_results}}"
-  complex_results: "{{deep_results}}"
+    on_error: continue
