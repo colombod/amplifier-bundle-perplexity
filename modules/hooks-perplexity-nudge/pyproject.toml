@@ -1,0 +1,36 @@
+[project]
+name = "amplifier-module-hooks-perplexity-nudge"
+version = "0.1.0"
+description = "Hook that detects stuck/looping sessions and nudges toward perplexity:research-expert"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = []
+
+[project.entry-points."amplifier.modules"]
+hooks-perplexity-nudge = "amplifier_module_hooks_perplexity_nudge:mount"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["amplifier_module_hooks_perplexity_nudge"]
+
+[tool.uv]
+package = true
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pyyaml>=6.0",
+    "amplifier-core @ git+https://github.com/microsoft/amplifier-core",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

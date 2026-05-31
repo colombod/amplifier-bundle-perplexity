@@ -177,6 +177,55 @@ amplifier run "Use perplexity_research to find information about CRISPR breakthr
 - **Categorized References**: Sources grouped by type (Academic, News, Docs, Other) with extractable URLs
 - **Deep Dive Suggestions**: Prioritized follow-up recommendations for agents with `web_fetch`
 - **Cost-Aware Guidance**: Token-based pricing (~10-15k tokens typical)
+- **Stuck-detection nudge**: Conservative hook that nudges toward `perplexity:research-expert` when a session is genuinely looping (see below)
+
+## Stuck-detection nudge (optional, on by default)
+
+The bundle ships a hook (`hooks-perplexity-nudge`) that watches for sessions spinning
+in circles and injects a single, short `<system-reminder>` suggesting the agent pause
+and delegate to `perplexity:research-expert` to get authoritative information before
+continuing.
+
+**It is deliberately conservative.** The nudge fires only when there is a
+high-confidence objective signal of being stuck:
+
+| Signal | Threshold |
+|--------|-----------|
+| Repeated identical error in tool results | ≥ 2 times (configurable) |
+| Same tool + same args called in a loop | ≥ 3 times (configurable) |
+| Struggle phrase ("I'm stuck", "still failing", …) **and** no successful tool result after | — |
+
+**It is suppressed** in all of the following cases (conservative defaults):
+
+- `enabled: false` in config — silences the hook entirely
+- Within the 6-turn cooldown after the last injection
+- After 3 injections per session (hard cap)
+- When `perplexity_research` or `research-expert` already appears in the recent window
+- **When the most recent tool result is a successful, content-bearing result** (> 200 chars,
+  non-error) — the session already has knowledge and is making progress
+
+### Tuning or disabling
+
+Override any value via the behavior config. To disable completely:
+
+```yaml
+# In your bundle's overrides or settings.yaml:
+overrides:
+  hooks-perplexity-nudge:
+    config:
+      enabled: false
+```
+
+To tune conservatism:
+
+```yaml
+overrides:
+  hooks-perplexity-nudge:
+    config:
+      cooldown_turns: 10   # Wait longer between nudges
+      max_injections: 1    # Only nudge once per session
+      scan_depth: 8        # Look at more recent context
+```
 
 ## Usage
 
