@@ -59,29 +59,42 @@ Agent uses:
 
 ## Installation
 
-### Option 1: Amplifier CLI (Recommended)
+This bundle ships its capability as a thin **behavior** (`behaviors/perplexity-research.yaml`)
+that contributes only the research tool, the `research-expert` agent, and the cost-aware
+context — it does **not** include `amplifier-foundation`. That means you can layer it on top
+of your existing app without pulling foundation in a second time. The full root bundle
+(`bundle.md`) is also available as a standalone that bundles foundation + behavior together.
+
+### Add to an existing app (recommended)
+
+Layers Perplexity research on top of your active bundle — no duplicate foundation:
 
 ```bash
-# Add the bundle to your registry
-amplifier bundle add git+https://github.com/colombod/amplifier-bundle-perplexity@main
+amplifier bundle add git+https://github.com/colombod/amplifier-bundle-perplexity@main#subdirectory=behaviors/perplexity-research.yaml --app
+```
 
-# Set it as your active bundle (or compose with your existing bundle)
+### Standalone — dedicated session with foundation included
+
+Creates a new `perplexity` bundle configuration (includes foundation):
+
+```bash
+amplifier bundle add git+https://github.com/colombod/amplifier-bundle-perplexity@main
 amplifier bundle use perplexity
 
 # Verify installation
 amplifier bundle list
 ```
 
-### Option 2: Compose with Your Existing Bundle
+### Compose into your own bundle
 
-Add to your bundle's includes:
+Add to your bundle's `includes:`. Use the **behavior** path so you don't pull foundation twice:
 
 ```yaml
 includes:
-  - bundle: git+https://github.com/colombod/amplifier-bundle-perplexity@main
+  - bundle: git+https://github.com/colombod/amplifier-bundle-perplexity@main#subdirectory=behaviors/perplexity-research.yaml
 ```
 
-### Option 3: Use Directly Without Installing
+### One-time use (no install)
 
 ```bash
 # Run with the bundle directly (one-time use)
@@ -90,18 +103,51 @@ amplifier run --bundle git+https://github.com/colombod/amplifier-bundle-perplexi
 
 ## Environment Setup
 
-Set your Perplexity API key:
+> **Required.** This bundle needs a Perplexity API key to function. The `perplexity_research`
+> tool resolves its key at mount time as:
+>
+> ```python
+> api_key = config.get("api_key") or os.environ.get("PERPLEXITY_API_KEY")
+> ```
+>
+> If neither is set, the **bundle still installs**, but the tool refuses to mount and emits:
+> `Perplexity research tool not mounted: PERPLEXITY_API_KEY not set.` Set the key before you
+> expect any research calls to work.
+
+### Option A: Environment variable (recommended)
 
 ```bash
 export PERPLEXITY_API_KEY=pplx-xxxxx
 ```
 
-Or add to your shell profile (`~/.bashrc`, `~/.zshrc`):
+Or persist it in your shell profile (`~/.bashrc`, `~/.zshrc`):
 
 ```bash
 echo 'export PERPLEXITY_API_KEY="pplx-xxxxx"' >> ~/.bashrc
 source ~/.bashrc
 ```
+
+### Option B: Bundle/tool config
+
+If you prefer not to use the environment, provide the key via the tool's `config.api_key`
+(e.g. through `settings.yaml` overrides or a composing bundle). Reference the env var rather
+than hardcoding the literal key so the secret never lands in version control:
+
+```yaml
+overrides:
+  tool-perplexity-search:
+    config:
+      api_key: ${PERPLEXITY_API_KEY}
+```
+
+### Secret handling — do not commit your key
+
+- **Never** hardcode the literal `pplx-...` key into bundle files, `settings.yaml`, recipes, or
+  profiles that get committed. Use the environment variable, or reference it via `${PERPLEXITY_API_KEY}`.
+- When testing in an isolated environment (e.g. the Digital Twin Universe profile shipped under
+  [`.amplifier/digital-twin-universe/`](.amplifier/digital-twin-universe/)), the key is **forwarded
+  from your host environment at launch** via the profile's `passthrough.services` block — only the
+  env-var *name* (`PERPLEXITY_API_KEY`) lives in the committed profile, never the value.
 
 ## Quick Start
 
@@ -249,13 +295,21 @@ The tool automatically categorizes sources:
 | `/v1/responses` | Agentic research (this bundle) |
 | `/v1/chat/completions` | Standard chat (separate provider module) |
 
-### Available Presets
+### Modes & Models
 
-| Preset | Depth | Best For |
-|--------|-------|----------|
-| `pro-search` | Medium | Balanced research |
-| `sonar-pro` | Deep | Comprehensive coverage |
-| `sonar-reasoning` | Deep + Analysis | Complex reasoning |
+| Mode | API | Description |
+|------|-----|-------------|
+| `auto` | Research → Chat fallback | Default. Tries research first, falls back to chat on quota/rate limits |
+| `research` | Agentic Research API | Deep, multi-step research with autonomous source discovery |
+| `chat` | Chat Completions API | Faster, cheaper queries when deep research isn't needed |
+
+**Chat mode models** (`model` parameter, only applies when mode is `chat` or `auto` falls back to chat):
+
+| Model | Strength | Use When |
+|-------|----------|----------|
+| `sonar-pro` | Comprehensive | Default. Strong search and retrieval |
+| `sonar` | Fast | Quick lookups, simple queries |
+| `sonar-reasoning` | Reasoning | Complex analysis requiring multi-step reasoning |
 
 ## Related Modules
 

@@ -91,7 +91,6 @@ class PerplexityResearchTool:
         self.coordinator = coordinator
 
         # Configuration with defaults
-        self.preset: str = self.config.get("preset", "pro-search")
         self.reasoning_effort: str = self.config.get("reasoning_effort", "medium")
         self.max_steps: int = self.config.get("max_steps", 5)
         self.timeout: float = self.config.get("timeout", 120.0)
@@ -735,22 +734,75 @@ Cost: Token-based (~10-15k tokens typical). Returns structured output with citat
         return "\n".join(parts)
 
 
+class PerplexityResearchDisabledTool:
+    """Disabled placeholder tool mounted when PERPLEXITY_API_KEY is not set.
+
+    Registers with the coordinator to satisfy protocol compliance. When executed,
+    returns a clear error explaining how to enable the tool.
+    """
+
+    name = "perplexity_research"
+    __amplifier_module_type__ = "tool"
+
+    @property
+    def description(self) -> str:
+        """Tool description for LLM context."""
+        return (
+            "Deep research using Perplexity's Agentic Research API. "
+            "Currently unavailable: PERPLEXITY_API_KEY is not set. "
+            "Set the environment variable or provide api_key in config to enable."
+        )
+
+    @property
+    def input_schema(self) -> dict[str, Any]:
+        """JSON Schema for tool input parameters."""
+        return {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Research question or topic to investigate",
+                },
+            },
+            "required": ["query"],
+        }
+
+    async def execute(self, input: dict[str, Any]) -> ToolResult:
+        """Return a clear error when the API key is not configured."""
+        return ToolResult(
+            success=False,
+            output=(
+                "Perplexity research unavailable: PERPLEXITY_API_KEY not set. "
+                "Set the environment variable or provide api_key in config."
+            ),
+            error={
+                "message": (
+                    "Perplexity research unavailable: PERPLEXITY_API_KEY not set. "
+                    "Set the environment variable or provide api_key in config."
+                )
+            },
+        )
+
+
 async def mount(
     coordinator: ModuleCoordinator, config: dict[str, Any] | None = None
 ) -> Any:
     """Mount the Perplexity Research Tool into Amplifier.
 
+    When PERPLEXITY_API_KEY is not set, mounts a disabled placeholder tool that
+    registers normally but returns a clear error when executed. This satisfies
+    protocol compliance (no bare None return without coordinator.mount()).
+
     Args:
         coordinator: Amplifier module coordinator
         config: Optional configuration dictionary containing:
             - api_key: Perplexity API key (or use PERPLEXITY_API_KEY env var)
-            - preset: Default research preset
             - reasoning_effort: Default reasoning depth
             - max_steps: Default max research steps
             - timeout: Request timeout in seconds
 
     Returns:
-        Cleanup function to close HTTP client, or None if mounting failed
+        Cleanup function to close HTTP client (key present), or None (no key)
     """
     config = config or {}
     api_key = config.get("api_key") or os.environ.get("PERPLEXITY_API_KEY")
@@ -760,6 +812,8 @@ async def mount(
             "Perplexity research tool not mounted: PERPLEXITY_API_KEY not set. "
             "Set the environment variable or provide api_key in config."
         )
+        placeholder = PerplexityResearchDisabledTool()
+        await coordinator.mount("tools", placeholder, name=placeholder.name)
         return None
 
     tool = PerplexityResearchTool(
@@ -769,7 +823,11 @@ async def mount(
     )
 
     await coordinator.mount("tools", tool, name=tool.name)
-    logger.info("Perplexity research tool mounted (preset: %s)", tool.preset)
+    logger.info(
+        "Perplexity research tool mounted (reasoning_effort=%s, max_steps=%s)",
+        tool.reasoning_effort,
+        tool.max_steps,
+    )
 
     async def cleanup() -> None:
         await tool.close()

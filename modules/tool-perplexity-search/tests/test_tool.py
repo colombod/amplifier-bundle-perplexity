@@ -406,7 +406,6 @@ class TestConfiguration:
 
     def test_default_configuration(self, tool):
         """Tool should use sensible defaults."""
-        assert tool.preset == "pro-search"
         assert tool.reasoning_effort == "medium"
         assert tool.max_steps == 5
         assert tool.timeout == 120.0
@@ -415,7 +414,6 @@ class TestConfiguration:
     def test_custom_configuration(self):
         """Tool should accept custom configuration."""
         config = {
-            "preset": "sonar-pro",
             "reasoning_effort": "high",
             "max_steps": 8,
             "timeout": 180.0,
@@ -423,7 +421,6 @@ class TestConfiguration:
         }
         tool = PerplexityResearchTool(api_key="test-key", config=config)
 
-        assert tool.preset == "sonar-pro"
         assert tool.reasoning_effort == "high"
         assert tool.max_steps == 8
         assert tool.timeout == 180.0
@@ -503,8 +500,8 @@ class TestMount:
         # Cleanup
         await cleanup()
 
-    async def test_mount_without_api_key_returns_none(self, monkeypatch):
-        """Mount should return None if no API key available."""
+    async def test_mount_without_api_key_mounts_placeholder(self, monkeypatch):
+        """Mount with no API key should mount a disabled placeholder tool."""
         monkeypatch.delenv("PERPLEXITY_API_KEY", raising=False)
 
         from amplifier_core import TestCoordinator
@@ -512,6 +509,36 @@ class TestMount:
         from amplifier_module_tool_perplexity_search import mount
 
         coordinator = TestCoordinator()
-        result = await mount(coordinator, {})
+        await mount(coordinator, {})
 
-        assert result is None
+        # Placeholder is mounted — coordinator.mount() MUST have been called
+        assert any(
+            entry.get("name") == "perplexity_research"
+            for entry in coordinator.mount_history
+            if entry.get("mount_point") == "tools"
+        ), "Placeholder tool must be registered in coordinator"
+
+    async def test_mount_placeholder_execute_returns_error(self, monkeypatch):
+        """The disabled placeholder tool returns an error ToolResult, not an exception."""
+        monkeypatch.delenv("PERPLEXITY_API_KEY", raising=False)
+
+        from amplifier_core import TestCoordinator
+
+        from amplifier_module_tool_perplexity_search import mount
+
+        coordinator = TestCoordinator()
+        await mount(coordinator, {})
+
+        # Retrieve the mounted placeholder
+        placeholder_entry = next(
+            entry
+            for entry in coordinator.mount_history
+            if entry.get("mount_point") == "tools"
+            and entry.get("name") == "perplexity_research"
+        )
+        placeholder_tool = placeholder_entry["module"]
+
+        result = await placeholder_tool.execute({"query": "test"})
+
+        assert result.success is False
+        assert "PERPLEXITY_API_KEY" in result.output

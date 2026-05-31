@@ -23,3 +23,15 @@ package = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["amplifier_module_tool_perplexity_search"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "respx>=0.21.1",
+    "amplifier-core @ git+https://github.com/microsoft/amplifier-core",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

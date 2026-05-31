@@ -64,3 +64,7 @@ The `perplexity_research` tool supports two API modes:
 ## Delegation
 
 For any substantial research task, delegate to `perplexity:research-expert` - it carries the full research methodology and cost-benefit framework.
+
+## Environment
+
+Requires `PERPLEXITY_API_KEY` environment variable. If absent, the tool mounts in disabled mode and returns an error when invoked.
