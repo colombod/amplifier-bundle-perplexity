@@ -28,10 +28,11 @@ Ask: "Is this research task valuable enough to justify a paid API call?"
 
 ## Cost Factors
 
-The Agentic Research API uses token-based pricing with configurable depth:
+The Agentic Research API uses token-based pricing with configurable depth via the
+`reasoning_effort` parameter:
 
-| Reasoning Effort | Token Usage | When to Use |
-|------------------|-------------|-------------|
+| `reasoning_effort` | Token Usage | When to Use |
+|--------------------|-------------|-------------|
 | `low` | ~5-10k tokens | Quick fact-finding |
 | `medium` | ~10-15k tokens | Balanced research (default) |
 | `high` | ~15-25k tokens | Deep analysis, complex topics |

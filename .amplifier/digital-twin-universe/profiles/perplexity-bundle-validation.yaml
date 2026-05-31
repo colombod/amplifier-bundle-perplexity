@@ -1,0 +1,160 @@
+# Digital Twin Universe profile: validate amplifier-bundle-perplexity end-to-end.
+#
+# WHAT THIS VALIDATES
+#   The two install paths documented in this bundle's README:
+#     1. Behavior-layer install (recommended) -- layer the thin behavior
+#        (behaviors/perplexity-research.yaml) onto an existing foundation-based
+#        app via `--app`, WITHOUT double-loading foundation. Confirms the
+#        tool-perplexity-search tool + perplexity:research-expert agent load.
+#     2. Standalone root-bundle install -- `bundle add` + `bundle use perplexity`,
+#        which pulls foundation + the behavior together.
+#
+# HOW TO RE-RUN THIS VALIDATION
+#   This profile is parameterized so it is NOT pinned to a one-off Gitea
+#   instance. Two variables control where the bundle is fetched from:
+#
+#     GITEA_URL    Base URL of a Gitea (or any git host) reachable from INSIDE
+#                  the Incus container, serving admin/amplifier-bundle-perplexity.
+#                  Used by url_rewrites to redirect the bundle's own
+#                  github.com/colombod/... self-references to your local copy.
+#     GITEA_TOKEN  API token for that Gitea instance.
+#
+#   Typical local-changes workflow (test the working tree, no push to GitHub):
+#     1. Start / reuse a Gitea instance:
+#          amplifier-gitea list   # reuse a running one, or:
+#          amplifier-gitea create --port 10110
+#          amplifier-gitea token <gitea-id>      # -> token
+#     2. Mirror + push your working tree (captures uncommitted changes):
+#          amplifier-gitea mirror-from-github <gitea-id> \
+#            --github-repo https://github.com/colombod/amplifier-bundle-perplexity
+#          # then snapshot-push your local working tree to admin/amplifier-bundle-perplexity
+#     3. Find a host IP the container can reach (Incus bridge gateway usually works):
+#          incus network get incusbr0 ipv4.address   # e.g. 10.160.61.1/24
+#     4. Launch:
+#          amplifier-digital-twin launch \
+#            .amplifier/digital-twin-universe/profiles/perplexity-bundle-validation.yaml \
+#            --var GITEA_URL=http://<host-ip>:<port> \
+#            --var GITEA_TOKEN=<token> \
+#            --name perplexity-validation
+#     5. Re-test after more local edits (re-push to Gitea, then):
+#          amplifier-digital-twin update <id>
+#
+#   To validate the ALREADY-PUBLISHED GitHub state instead of a local copy,
+#   omit url_rewrites entirely (delete the section) -- the github.com/colombod
+#   URLs below resolve straight from GitHub.
+#
+# See .amplifier/digital-twin-universe/README.md for the full walkthrough.
+
+name: perplexity-bundle-validation
+description: >
+  End-to-end validation of amplifier-bundle-perplexity: behavior-layer install
+  (--app, no double foundation) and standalone root-bundle install.
+
+base:
+  image: ubuntu:24.04
+
+# Redirect the bundle's own github.com/colombod self-references (in bundle.md,
+# the behavior's tool source subdirectory, and the install commands below) to
+# the Gitea copy so the LOCAL working tree is what actually gets tested.
+url_rewrites:
+  auth:
+    username: admin
+    token_var: GITEA_TOKEN
+  # Keep uv's GitHub fast path off so git-level rewrites actually apply.
+  allow_uv_github_fast_path: false
+  default_match_mode: boundary
+  rules:
+    - match: github.com/colombod/amplifier-bundle-perplexity
+      target: ${GITEA_URL}/admin/amplifier-bundle-perplexity
+
+# SECRET FORWARDING (read before launch)
+#   This bundle's tool resolves its key at mount time as:
+#       api_key = config.get("api_key") or os.environ.get("PERPLEXITY_API_KEY")
+#   (modules/tool-perplexity-search/.../__init__.py). If neither is present the
+#   tool does NOT mount and emits a clear "PERPLEXITY_API_KEY not set" error.
+#
+#   The idiomatic, secret-safe mechanism is env-var forwarding via the
+#   `passthrough` block below: at LAUNCH time the DTU reads PERPLEXITY_API_KEY
+#   from the HOST environment and exports it inside the container (login shells
+#   source /etc/profile.d/dtu-env.sh, so `amplifier run` sees it). The literal
+#   key is NEVER written into this profile -- only the env-var NAME appears here.
+#
+#   Required on the host before launch:
+#       export PERPLEXITY_API_KEY=pplx-...   # real key, for LIVE research calls
+#       export ANTHROPIC_API_KEY=sk-ant-...  # LLM provider for `amplifier run`
+#   If PERPLEXITY_API_KEY is unset on the host, the bundle still INSTALLS and the
+#   tool registers structurally, but LIVE perplexity_research calls will fail.
+passthrough:
+  allow_external: true
+  services:
+    # Base LLM provider so `amplifier run` works for any live check.
+    - name: anthropic
+      key_env: ANTHROPIC_API_KEY
+    # REQUIRED for the LIVE end-to-end research call. Forwarded from the host
+    # env as PERPLEXITY_API_KEY (never hardcoded). Without it the tool refuses
+    # to mount; structural-only validation can still proceed.
+    - name: perplexity
+      key_env: PERPLEXITY_API_KEY
+
+provision:
+  setup_cmds:
+    # --- System deps + uv ---
+    - apt-get update && apt-get install -y git curl
+    - curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # --- Install Amplifier from upstream ---
+    - uv tool install -vv git+https://github.com/microsoft/amplifier
+
+    # --- Configure the Anthropic provider so sessions can reach an LLM ---
+    # $ANTHROPIC_API_KEY is forwarded via passthrough.services.
+    - |
+      mkdir -p /root/.amplifier
+      cat > /root/.amplifier/settings.yaml << EOF
+      config:
+        providers:
+          - module: provider-anthropic
+            source: git+https://github.com/microsoft/amplifier-module-provider-anthropic@main
+            config:
+              api_key: $ANTHROPIC_API_KEY
+      EOF
+
+    - amplifier --version
+
+    # ====================================================================
+    # GOAL 1 -- Behavior-layer install onto an existing foundation app.
+    # Layer foundation first (an existing app), then layer ONLY the thin
+    # perplexity behavior. Foundation must NOT be pulled a second time.
+    # ====================================================================
+    - amplifier bundle add git+https://github.com/microsoft/amplifier-foundation@main --app
+    - amplifier bundle add git+https://github.com/colombod/amplifier-bundle-perplexity@main#subdirectory=behaviors/perplexity-research.yaml --app
+
+    # Assert the behavior's contributions resolved into the composed app.
+    - |
+      echo "=== GOAL 1: behavior-layer composed app ==="
+      amplifier bundle list
+      amplifier bundle show --app 2>/dev/null || true
+
+    # ====================================================================
+    # GOAL 2 -- Standalone root-bundle install (foundation + behavior).
+    # ====================================================================
+    - amplifier bundle add git+https://github.com/colombod/amplifier-bundle-perplexity@main
+    - amplifier bundle use perplexity
+    - |
+      echo "=== GOAL 2: standalone perplexity bundle ==="
+      amplifier bundle list
+      amplifier bundle show perplexity 2>/dev/null || true
+
+    # Workspace for interactive exec sessions.
+    - mkdir -p /home/user/project
+
+update:
+  cmds:
+    # Clear cached modules so a re-test re-clones from the (rewritten) Gitea URLs.
+    - rm -rf /root/.amplifier/cache/
+    - uv tool install --reinstall --force git+https://github.com/microsoft/amplifier
+    - amplifier bundle add git+https://github.com/colombod/amplifier-bundle-perplexity@main#subdirectory=behaviors/perplexity-research.yaml --app
+    - amplifier bundle list
+
+readiness:
+  - name: amplifier-installed
+    command: amplifier --version

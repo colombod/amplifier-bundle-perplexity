@@ -49,11 +49,9 @@ meta:
     </commentary>
     </example>
 
-provider_preferences:
-  - provider: anthropic
-    model: claude-haiku-*
-  - provider: openai
-    model: gpt-5-mini*
+model_role:
+  - research
+  - general
 
 tools:
   - module: tool-perplexity-search
@@ -99,7 +97,7 @@ You have access to exactly these tools and ONLY these tools:
 
 ## Cost-Benefit Decision Framework
 
-@perplexity:context/cost-guidance.md
+@perplexity:docs/COST_GUIDANCE.md
 
 ## Operating Principles
 

@@ -5,7 +5,20 @@ from pathlib import Path
 import yaml
 
 
-BEHAVIOR_PATH = Path(__file__).parent.parent / "behaviors" / "perplexity-research.yaml"
+def _find_repo_root() -> Path:
+    """Walk up from this file until we find bundle.md (repo root marker)."""
+    current = Path(__file__).resolve().parent
+    while current != current.parent:
+        if (current / "bundle.md").exists():
+            return current
+        current = current.parent
+    raise RuntimeError(
+        "Could not find repo root (bundle.md not found in any parent directory)"
+    )
+
+
+REPO_ROOT = _find_repo_root()
+BEHAVIOR_PATH = REPO_ROOT / "behaviors" / "perplexity-research.yaml"
 
 
 class TestBehaviorConfig:

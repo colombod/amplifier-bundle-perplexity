@@ -1,4 +1,4 @@
-"""Tests for research-expert agent frontmatter (provider_preferences, tools, description)."""
+"""Tests for research-expert agent frontmatter (model_role, tools, description)."""
 
 import re
 from pathlib import Path
@@ -6,7 +6,20 @@ from pathlib import Path
 import yaml
 
 
-AGENT_PATH = Path(__file__).parent.parent / "agents" / "research-expert.md"
+def _find_repo_root() -> Path:
+    """Walk up from this file until we find bundle.md (repo root marker)."""
+    current = Path(__file__).resolve().parent
+    while current != current.parent:
+        if (current / "bundle.md").exists():
+            return current
+        current = current.parent
+    raise RuntimeError(
+        "Could not find repo root (bundle.md not found in any parent directory)"
+    )
+
+
+REPO_ROOT = _find_repo_root()
+AGENT_PATH = REPO_ROOT / "agents" / "research-expert.md"
 
 
 def _parse_frontmatter(content: str) -> tuple[str, str]:
@@ -44,41 +57,49 @@ class TestFrontmatterStructure:
         assert closing_idx is not None, "Must have closing --- delimiter"
 
     def test_three_toplevel_keys_in_order(self):
-        """meta -> provider_preferences -> tools are the three top-level keys."""
+        """meta -> model_role -> tools are the three top-level keys."""
         data = _load_frontmatter()
         keys = list(data.keys())
-        assert keys == ["meta", "provider_preferences", "tools"], (
-            f"Expected ['meta', 'provider_preferences', 'tools'], got {keys}"
+        assert keys == ["meta", "model_role", "tools"], (
+            f"Expected ['meta', 'model_role', 'tools'], got {keys}"
         )
 
 
-class TestProviderPreferences:
-    """Tests for provider_preferences section."""
+class TestModelRole:
+    """Tests for model_role section (replaces provider_preferences)."""
 
-    def test_provider_preferences_exists(self):
-        """provider_preferences key must exist."""
+    def test_model_role_exists(self):
+        """model_role key must exist."""
         data = _load_frontmatter()
-        assert "provider_preferences" in data
+        assert "model_role" in data
 
-    def test_two_providers(self):
-        """Should have exactly two provider entries."""
-        data = _load_frontmatter()
-        prefs = data["provider_preferences"]
-        assert len(prefs) == 2, f"Expected 2 providers, got {len(prefs)}"
+    def test_model_role_is_research_chain(self):
+        """model_role must be the [research, general] fallback chain.
 
-    def test_first_provider_anthropic_haiku(self):
-        """First provider is anthropic with claude-haiku-* model."""
+        'research' is the semantically correct primary role (deep investigation /
+        multi-source synthesis) and is a real role defined in the routing-matrix
+        bundle's role definitions and every curated matrix. Per the routing-matrix
+        role definitions, the documented example chain for this role is
+        [research, general] so it degrades to the universal catch-all when the
+        research candidates' providers are not installed.
+        """
         data = _load_frontmatter()
-        first = data["provider_preferences"][0]
-        assert first["provider"] == "anthropic"
-        assert first["model"] == "claude-haiku-*"
+        role = data["model_role"]
+        assert isinstance(role, list), f"Expected a fallback chain list, got {role!r}"
+        assert role[0] == "research", f"Chain must start with 'research', got {role!r}"
+        assert role[-1] in ("general", "fast"), (
+            f"Chain must end with a universal catch-all (general/fast), got {role!r}"
+        )
+        assert role == ["research", "general"], (
+            f"Expected ['research', 'general'], got {role!r}"
+        )
 
-    def test_second_provider_openai_mini(self):
-        """Second provider is openai with gpt-5-mini model."""
+    def test_no_provider_preferences(self):
+        """provider_preferences must NOT be present (replaced by model_role)."""
         data = _load_frontmatter()
-        second = data["provider_preferences"][1]
-        assert second["provider"] == "openai"
-        assert second["model"] == "gpt-5-mini"
+        assert "provider_preferences" not in data, (
+            "provider_preferences should be removed; use model_role instead"
+        )
 
 
 class TestTools:
@@ -89,17 +110,42 @@ class TestTools:
         data = _load_frontmatter()
         assert "tools" in data
 
-    def test_one_tool(self):
-        """Should have exactly one tool entry."""
+    def test_two_tools(self):
+        """Should have exactly two tool entries."""
         data = _load_frontmatter()
         tools = data["tools"]
-        assert len(tools) == 1, f"Expected 1 tool, got {len(tools)}"
+        assert len(tools) == 2, f"Expected 2 tools, got {len(tools)}"
 
-    def test_tool_web(self):
-        """Tool is tool-web with correct git URL."""
+    def test_tool_perplexity_search_present(self):
+        """tool-perplexity-search must be present by name."""
         data = _load_frontmatter()
-        tool = data["tools"][0]
-        assert tool["module"] == "tool-web"
+        tool_names = [t["module"] for t in data["tools"]]
+        assert "tool-perplexity-search" in tool_names, (
+            f"tool-perplexity-search not found in tools: {tool_names}"
+        )
+
+    def test_tool_web_present(self):
+        """tool-web must be present by name."""
+        data = _load_frontmatter()
+        tool_names = [t["module"] for t in data["tools"]]
+        assert "tool-web" in tool_names, (
+            f"tool-web not found in tools: {tool_names}"
+        )
+
+    def test_tool_perplexity_search_source(self):
+        """tool-perplexity-search must have correct git source URL."""
+        data = _load_frontmatter()
+        tool = next(t for t in data["tools"] if t["module"] == "tool-perplexity-search")
+        expected_source = (
+            "git+https://github.com/colombod/amplifier-bundle-perplexity@main"
+            "#subdirectory=modules/tool-perplexity-search"
+        )
+        assert tool["source"] == expected_source
+
+    def test_tool_web_source(self):
+        """tool-web must have correct git source URL."""
+        data = _load_frontmatter()
+        tool = next(t for t in data["tools"] if t["module"] == "tool-web")
         expected_source = (
             "git+https://github.com/microsoft/amplifier-module-tool-web@main"
         )

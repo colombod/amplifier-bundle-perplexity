@@ -6,7 +6,21 @@ not stale preset names like 'fast-search' or 'deep-research'.
 
 import pathlib
 
-GUIDE_PATH = pathlib.Path(__file__).parent.parent / "docs" / "RESEARCH_GUIDE.md"
+
+def _find_repo_root() -> pathlib.Path:
+    """Walk up from this file until we find bundle.md (repo root marker)."""
+    current = pathlib.Path(__file__).resolve().parent
+    while current != current.parent:
+        if (current / "bundle.md").exists():
+            return current
+        current = current.parent
+    raise RuntimeError(
+        "Could not find repo root (bundle.md not found in any parent directory)"
+    )
+
+
+REPO_ROOT = _find_repo_root()
+GUIDE_PATH = REPO_ROOT / "docs" / "RESEARCH_GUIDE.md"
 
 
 def test_no_unreachable_preset_fast_search():

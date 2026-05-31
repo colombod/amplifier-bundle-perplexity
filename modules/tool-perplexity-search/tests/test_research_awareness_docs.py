@@ -2,7 +2,21 @@
 
 import pathlib
 
-DOCS_PATH = pathlib.Path(__file__).parent.parent / "context" / "research-awareness.md"
+
+def _find_repo_root() -> pathlib.Path:
+    """Walk up from this file until we find bundle.md (repo root marker)."""
+    current = pathlib.Path(__file__).resolve().parent
+    while current != current.parent:
+        if (current / "bundle.md").exists():
+            return current
+        current = current.parent
+    raise RuntimeError(
+        "Could not find repo root (bundle.md not found in any parent directory)"
+    )
+
+
+REPO_ROOT = _find_repo_root()
+DOCS_PATH = REPO_ROOT / "context" / "research-awareness.md"
 
 
 def test_no_stale_preset_references():
