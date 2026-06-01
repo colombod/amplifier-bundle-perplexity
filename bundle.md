@@ -13,6 +13,12 @@ includes:
 
 # Perplexity Deep Research
 
-@perplexity:context/research-awareness.md
+<!--
+  Awareness context (research-awareness.md) is injected once via the behavior's
+  `context.include` (behaviors/perplexity-research.yaml). It is intentionally NOT
+  @mentioned here to avoid a double-load in the standalone root-bundle path —
+  the body-instruction channel and the behavior's context.include channel are not
+  cross-deduplicated. The behavior is the single source of the awareness injection.
+-->
 
 @foundation:context/shared/common-system-base.md

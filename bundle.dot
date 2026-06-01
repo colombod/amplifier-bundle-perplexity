@@ -8,12 +8,12 @@ digraph perplexity {
     nodesep=0.6
     ranksep=0.7
     bgcolor="white"
-    source_hash="f978b6b8b4368f40fb761f751ce84822c0816811e81c63aed460f5ecf36d89c3"
+    source_hash="4a20644f711105fe3857198dadb83599c0e64c4acc60b71c05756e7c6a455121"
 
     node [fontname="Helvetica", fontsize=11, style="filled,rounded"]
     edge [fontname="Helvetica", fontsize=9]
 
-    root_perplexity [label="perplexity v1.0.0\n0 tools · 0 agents\n~909 tok aggregate", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", penwidth=2]
+    root_perplexity [label="perplexity v1.0.0\n0 tools · 0 agents\n~222 tok aggregate", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", penwidth=2]
 
     subgraph cluster_behaviors {
         label="Behaviors"
@@ -81,5 +81,4 @@ digraph perplexity {
     beh_perplexity_research_behavior -> mod_tool_perplexity_search [label="uses", penwidth=0.8]
     beh_perplexity_research_behavior -> mod_hooks_perplexity_nudge [label="uses", penwidth=0.8]
     beh_perplexity_research_behavior -> ctx_research_awareness_md [style=dotted, color=purple]
-    root_perplexity -> ctx_research_awareness_md [style=dotted, color=purple]
 }
